@@ -1,8 +1,10 @@
 name: Deploy Netlify
 
+# Déploiement MANUEL uniquement : le plan gratuit Netlify n'offre que
+# 100 minutes de build par mois. GitHub Pages (gratuit et illimité)
+# est le déploiement automatique principal ; Netlify n'est rafraîchi
+# que sur demande (bouton "Run workflow" > branche main).
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 concurrency:
