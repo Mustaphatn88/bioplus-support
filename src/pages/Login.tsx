@@ -79,6 +79,13 @@ export default function Login() {
           />
         </div>
 
+        {params.get('expired') === '1' && (
+          <p className="rounded-xl bg-amber-100 px-3 py-2 text-sm font-medium text-amber-800">
+            Session expirée : votre mot de passe a peut-être été réinitialisé.
+            Reconnectez-vous avec votre mot de passe actuel.
+          </p>
+        )}
+
         {error && (
           <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
         )}

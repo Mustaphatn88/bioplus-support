@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { edge } from '../lib/edge';
 import { supabase, type Automate, type Laboratoire, type TicketWithAutomate } from '../lib/supabaseClient';
 import {
   byAutomate,
@@ -44,7 +45,7 @@ export default function Clients() {
         .select('*, automates(id, nom, modele), technicien:profiles!tickets_technicien_id_fkey(full_name)')
         .order('created_at', { ascending: false })
         .limit(1000),
-      supabase.functions.invoke<{ users: ClientUser[] }>('list-users')
+      edge<{ users: ClientUser[] }>('list-users')
     ]);
     if (laboRes.error) setError(laboRes.error.message);
     else setLaboratoires(laboRes.data as Laboratoire[]);

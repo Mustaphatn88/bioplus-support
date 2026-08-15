@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { edge } from '../lib/edge';
 import { supabase, type Automate, type Laboratoire, type TicketWithAutomate } from '../lib/supabaseClient';
 import {
   activityByDay,
@@ -58,7 +59,7 @@ export default function Analytics() {
         .limit(1000),
       supabase.from('automates').select('*'),
       supabase.from('laboratoires').select('*').eq('est_client', true),
-      supabase.functions.invoke<{ users: ClientUser[] }>('list-users')
+      edge<{ users: ClientUser[] }>('list-users')
     ]);
     if (tickRes.error) setError(tickRes.error.message);
     else setTickets(tickRes.data as TicketWithAutomate[]);

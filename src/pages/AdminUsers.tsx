@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase, type Laboratoire, type Role } from '../lib/supabaseClient';
+import { edge } from '../lib/edge';
 import { useAuth } from '../contexts/AuthContext';
 import Spinner from '../components/Spinner';
 
@@ -61,7 +62,7 @@ export default function AdminUsers() {
     setLoading(true);
     setError(null);
     const [usersRes, labosRes] = await Promise.all([
-      supabase.functions.invoke<{ users: ManagedUser[] }>('list-users'),
+      edge<{ users: ManagedUser[] }>('list-users'),
       supabase.from('laboratoires').select('*').eq('est_client', true).order('nom')
     ]);
     if (usersRes.error) {
@@ -84,14 +85,12 @@ export default function AdminUsers() {
     e.preventDefault();
     setBusy(true);
     setError(null);
-    const { error } = await supabase.functions.invoke('create-user', {
-      body: {
-        email: form.email.trim(),
-        password: form.password,
-        full_name: form.full_name.trim() || null,
-        laboratoire_id: form.laboratoire_id || null,
-        role: form.role
-      }
+    const { error } = await edge('create-user', {
+      email: form.email.trim(),
+      password: form.password,
+      full_name: form.full_name.trim() || null,
+      laboratoire_id: form.laboratoire_id || null,
+      role: form.role
     });
     setBusy(false);
     if (error) {
@@ -107,24 +106,10 @@ export default function AdminUsers() {
   async function act(user: ManagedUser, action: string, params: Record<string, unknown> = {}) {
     setBusy(true);
     setError(null);
-    const { error, data } = await supabase.functions.invoke('update-user', {
-      body: { user_id: user.id, action, ...params }
-    });
+    const { error } = await edge('update-user', { user_id: user.id, action, ...params });
     setBusy(false);
     if (error) {
-      let msg = error.message;
-      try {
-        const raw = ((error as { context?: unknown }).context ?? data) as unknown;
-        if (raw) {
-          const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
-          if (parsed && typeof parsed === 'object' && 'error' in parsed) {
-            msg = String((parsed as { error: string }).error);
-          }
-        }
-      } catch {
-        /* message générique conservé */
-      }
-      setError(msg);
+      setError(error.message);
       return;
     }
     refresh();
@@ -175,9 +160,7 @@ export default function AdminUsers() {
   async function approveUser(user: ManagedUser, laboId: string, role: Role) {
     setBusy(true);
     setError(null);
-    const { error } = await supabase.functions.invoke('update-user', {
-      body: { user_id: user.id, action: 'approve', laboratoire_id: laboId || null, role }
-    });
+    const { error } = await edge('update-user', { user_id: user.id, action: 'approve', laboratoire_id: laboId || null, role });
     setBusy(false);
     if (error) {
       setError(error.message);

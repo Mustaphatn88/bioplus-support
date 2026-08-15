@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { edge } from '../lib/edge';
 import { supabase, type Priorite, type Statut, type TicketWithAutomate } from '../lib/supabaseClient';
 import Spinner from '../components/Spinner';
 
@@ -47,7 +48,7 @@ export default function Reclamations() {
         )
         .order('created_at', { ascending: false })
         .limit(200),
-      supabase.functions.invoke<{ users: Technicien[] }>('list-users')
+      edge<{ users: Technicien[] }>('list-users')
     ]);
     if (tickRes.error) setError(tickRes.error.message);
     else setTickets(tickRes.data as TicketWithAutomate[]);
@@ -76,9 +77,7 @@ export default function Reclamations() {
     if (err) setError(err.message);
     else {
       if (technicienId) {
-        supabase.functions.invoke('notify', {
-          body: { type: 'assignation', ticket_id: t.id, technicien_id: technicienId }
-        });
+        edge('notify', { type: 'assignation', ticket_id: t.id, technicien_id: technicienId });
       }
       refresh();
     }

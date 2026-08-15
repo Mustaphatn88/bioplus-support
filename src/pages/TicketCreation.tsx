@@ -1,6 +1,7 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { edge } from '../lib/edge';
 import {
   supabase,
   type Automate,
@@ -184,9 +185,7 @@ export default function TicketCreation() {
       }
 
       if (priorite === 'critique') {
-        supabase.functions.invoke('notify', {
-          body: { type: 'critique', ticket_id: (data as { id: string }).id }
-        });
+        edge('notify', { type: 'critique', ticket_id: (data as { id: string }).id });
       }
 
       navigate(`/ticket/${(data as { id: string }).id}`);
