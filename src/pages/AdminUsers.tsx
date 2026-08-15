@@ -7,8 +7,13 @@ interface ManagedUser {
   id: string;
   email: string;
   role: Role;
+  statut: 'en_attente' | 'valide';
   laboratoire_id: string | null;
   full_name: string | null;
+  laboratoire_nom: string | null;
+  laboratoire_ville: string | null;
+  laboratoire_adresse: string | null;
+  laboratoire_telephone: string | null;
   created_at: string;
   banned: boolean;
 }
@@ -33,6 +38,10 @@ export default function AdminUsers() {
   const [notice, setNotice] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [approving, setApproving] = useState<ManagedUser | null>(null);
+  const [approveLabo, setApproveLabo] = useState('');
+  const [approveRole, setApproveRole] = useState<Role>('responsable');
+  const [approveCreateLabo, setApproveCreateLabo] = useState(false);
 
   const [form, setForm] = useState({
     email: '',
@@ -125,6 +134,24 @@ export default function AdminUsers() {
     act(user, 'delete');
   }
 
+  async function approveUser(user: ManagedUser, laboId: string, role: Role) {
+    setBusy(true);
+    setError(null);
+    const { error } = await supabase.functions.invoke('update-user', {
+      body: { user_id: user.id, action: 'approve', laboratoire_id: laboId || null, role }
+    });
+    setBusy(false);
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    setApproving(null);
+    setNotice(`Compte ${user.email} validé et rattaché au laboratoire.`);
+    refresh();
+  }
+
+  const pendingUsers = (users ?? []).filter((u) => u.statut === 'en_attente');
+
   if (loading && !users) return <Spinner label="Chargement des utilisateurs..." />;
 
   return (
@@ -150,6 +177,60 @@ export default function AdminUsers() {
           + Nouveau compte
         </button>
       </div>
+
+      {pendingUsers.length > 0 && (
+        <section className="mb-4">
+          <h3 className="mb-2 text-sm font-bold text-amber-800">
+            Demandes d'inscription en attente ({pendingUsers.length})
+          </h3>
+          <ul className="space-y-2">
+            {pendingUsers.map((u) => (
+              <li key={u.id} className="card border-amber-200 bg-amber-50/50">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-slate-900">
+                      {u.full_name ?? u.email}
+                    </p>
+                    <p className="truncate text-xs text-slate-500">{u.email}</p>
+                  </div>
+                  <span className="badge shrink-0 bg-amber-100 text-amber-800">En attente</span>
+                </div>
+                <div className="mt-2 space-y-0.5 text-xs text-slate-600">
+                  <p className="font-semibold text-slate-800">
+                    {u.laboratoire_nom ?? 'Laboratoire sans nom'}
+                  </p>
+                  <p>
+                    {[u.laboratoire_ville, u.laboratoire_adresse, u.laboratoire_telephone]
+                      .filter(Boolean)
+                      .join(' · ') || 'Aucune coordonnée'}
+                  </p>
+                </div>
+                <div className="mt-3 flex gap-2">
+                  <button
+                    onClick={() => {
+                      setApproving(u);
+                      setApproveLabo('');
+                      setApproveRole('responsable');
+                      setApproveCreateLabo(!u.laboratoire_nom);
+                    }}
+                    disabled={busy}
+                    className="btn-primary px-2 py-1 text-xs"
+                  >
+                    Valider le compte
+                  </button>
+                  <button
+                    onClick={() => removeUser(u)}
+                    disabled={busy}
+                    className="btn-outline border-red-200 text-red-600 px-2 py-1 text-xs"
+                  >
+                    Refuser (supprimer)
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <ul className="space-y-2">
         {(users ?? []).map((u) => (
@@ -217,6 +298,71 @@ export default function AdminUsers() {
           </li>
         ))}
       </ul>
+
+      {approving && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center">
+          <div className="card w-full max-w-md space-y-3">
+            <h3 className="text-base font-bold text-slate-900">
+              Valider {approving.full_name ?? approving.email}
+            </h3>
+            {approving.laboratoire_nom && (
+              <p className="rounded-lg bg-slate-100 px-3 py-2 text-xs text-slate-600">
+                Laboratoire demandé : <strong>{approving.laboratoire_nom}</strong>
+                {approving.laboratoire_ville ? ` (${approving.laboratoire_ville})` : ''}
+              </p>
+            )}
+            <label className="flex items-center gap-2 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                checked={approveCreateLabo}
+                onChange={(e) => setApproveCreateLabo(e.target.checked)}
+                className="h-4 w-4 accent-teal-700"
+              />
+              Créer un nouveau laboratoire avec les informations fournies
+            </label>
+            {approveCreateLabo ? (
+              <p className="text-xs text-slate-500">
+                Le laboratoire « {approving.laboratoire_nom ?? 'à nommer'} » sera créé et ce
+                compte y sera rattaché.
+              </p>
+            ) : (
+              <select
+                value={approveLabo}
+                onChange={(e) => setApproveLabo(e.target.value)}
+                className="input w-full"
+              >
+                <option value="">— Choisir un laboratoire existant —</option>
+                {laboratoires.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.nom}
+                  </option>
+                ))}
+              </select>
+            )}
+            <select
+              value={approveRole}
+              onChange={(e) => setApproveRole(e.target.value as Role)}
+              className="input w-full"
+            >
+              <option value="responsable">Responsable (biologiste)</option>
+              <option value="technicien">Technicien</option>
+              <option value="admin">Administrateur (BioPlus)</option>
+            </select>
+            <div className="flex gap-2">
+              <button
+                onClick={() => approveUser(approving, approveLabo, approveRole)}
+                disabled={busy || (!approveCreateLabo && !approveLabo)}
+                className="btn-primary flex-1"
+              >
+                {busy ? 'Validation...' : 'Valider'}
+              </button>
+              <button onClick={() => setApproving(null)} className="btn-outline flex-1">
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showCreate && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center">

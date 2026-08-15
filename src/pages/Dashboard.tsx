@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { QRCodeSVG } from 'qrcode.react';
 import { useAuth } from '../contexts/AuthContext';
 import {
   supabase,
@@ -30,6 +31,7 @@ export default function Dashboard() {
   const [tickets, setTickets] = useState<TicketWithAutomate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showRegQr, setShowRegQr] = useState(false);
 
   useEffect(() => {
     if (!profile?.laboratoire_id) {
@@ -93,6 +95,19 @@ export default function Dashboard() {
     <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4">
       {renderHeader()}
 
+      {profile?.statut === 'en_attente' && (
+        <div className="card mb-4 border-amber-200 bg-amber-50">
+          <h2 className="text-base font-bold text-amber-900">Compte en attente de validation</h2>
+          <p className="mt-1 text-sm text-amber-800">
+            Votre demande d'inscription a bien été reçue. L'administration BioPlus doit
+            valider votre laboratoire avant l'activation de votre accès.
+          </p>
+          <p className="mt-2 text-xs text-amber-700">
+            Contact : support@bioplus.tn · +216 71 000 000
+          </p>
+        </div>
+      )}
+
       {profile?.role === 'admin' && (
         <div className="space-y-4">
           <div className="card border-dashed">
@@ -105,8 +120,7 @@ export default function Dashboard() {
             <Link to="/users" className="card block transition hover:border-teal-600">
               <p className="text-sm font-semibold text-slate-900">Comptes utilisateurs</p>
               <p className="text-xs text-slate-500">
-                Créer les comptes des laboratoires clients (biologistes, techniciens), gérer les
-                rôles et les accès.
+                Valider les inscriptions des laboratoires clients, gérer les rôles et les accès.
               </p>
             </Link>
             <Link to="/automates" className="card block transition hover:border-teal-600">
@@ -115,6 +129,12 @@ export default function Dashboard() {
                 Ajouter, modifier ou retirer les machines de chaque laboratoire.
               </p>
             </Link>
+            <button onClick={() => setShowRegQr(true)} className="card block w-full text-left transition hover:border-teal-600">
+              <p className="text-sm font-semibold text-slate-900">QR d'inscription client</p>
+              <p className="text-xs text-slate-500">
+                À imprimer : le client le scanne pour créer son compte (validation requise).
+              </p>
+            </button>
           </div>
         </div>
       )}
@@ -206,6 +226,36 @@ export default function Dashboard() {
         <p className="mt-6 text-center text-xs text-slate-400">
           Connecté en tant que {user.email}
         </p>
+      )}
+
+      {showRegQr && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="qr-print-area card w-full max-w-xs text-center">
+            <h3 className="text-base font-bold text-slate-900">QR d'inscription client</h3>
+            <p className="mb-3 text-xs text-slate-500">
+              Le client le scanne : il arrive sur la page d'inscription, puis vous validez son
+              compte.
+            </p>
+            <div className="mx-auto w-fit rounded-lg bg-white p-3">
+              <QRCodeSVG
+                value={`${window.location.origin}${window.location.pathname.startsWith('/bioplus-support') ? '/bioplus-support' : ''}/register`}
+                size={200}
+                level="M"
+              />
+            </div>
+            <p className="mt-3 break-all text-[10px] text-slate-400">
+              {`${window.location.origin}${window.location.pathname.startsWith('/bioplus-support') ? '/bioplus-support' : ''}/register`}
+            </p>
+            <div className="mt-3 flex gap-2">
+              <button onClick={() => window.print()} className="btn-primary flex-1">
+                Imprimer
+              </button>
+              <button onClick={() => setShowRegQr(false)} className="btn-outline flex-1">
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -42,8 +42,13 @@ Deno.serve(async (req) => {
       id: u.id,
       email: u.email,
       role: p?.role ?? 'technicien',
+      statut: p?.statut ?? 'valide',
       laboratoire_id: p?.laboratoire_id ?? null,
       full_name: p?.full_name ?? null,
+      laboratoire_nom: p?.laboratoire_nom ?? null,
+      laboratoire_ville: p?.laboratoire_ville ?? null,
+      laboratoire_adresse: p?.laboratoire_adresse ?? null,
+      laboratoire_telephone: p?.laboratoire_telephone ?? null,
       created_at: u.created_at,
       banned: !!u.banned_until && new Date(u.banned_until).getTime() > now
     };

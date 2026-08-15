@@ -33,10 +33,68 @@ Deno.serve(async (req) => {
   const { user_id, action, ...params } = await req.json();
   if (!user_id) return json({ error: 'Identifiant utilisateur requis.' }, 400);
 
-  const ACTIONS = ['role', 'laboratoire', 'password', 'ban', 'unban', 'delete'];
+  const ACTIONS = ['role', 'laboratoire', 'password', 'ban', 'unban', 'delete', 'approve'];
   if (!ACTIONS.includes(action)) return json({ error: 'Action invalide.' }, 400);
 
   switch (action) {
+    case 'approve': {
+      const { data: target, error: targetErr } = await admin
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user_id)
+        .maybeSingle();
+      if (targetErr || !target) {
+        return json({ error: targetErr?.message ?? 'Profil introuvable.' }, 400);
+      }
+      if (target.statut === 'valide') {
+        return json({ error: 'Ce compte est déjà validé.' }, 400);
+      }
+
+      let laboId = params.laboratoire_id ?? null;
+      if (!laboId) {
+        const nom =
+          target.laboratoire_nom ??
+          params.laboratoire_nom ??
+          'Laboratoire à renommer';
+        const { data: labo, error: laboErr } = await admin
+          .from('laboratoires')
+          .insert({
+            nom,
+            ville: target.laboratoire_ville ?? null,
+            adresse: target.laboratoire_adresse ?? null,
+            telephone: target.laboratoire_telephone ?? null
+          })
+          .select('id')
+          .single();
+        if (laboErr) return json({ error: laboErr.message }, 500);
+        laboId = labo.id;
+      }
+
+      const role = params.role ?? 'responsable';
+      if (!ROLES.includes(role)) return json({ error: 'Rôle invalide.' }, 400);
+
+      const { error: pErr } = await admin
+        .from('profiles')
+        .update({
+          laboratoire_id: laboId,
+          role,
+          statut: 'valide',
+          laboratoire_nom: null,
+          laboratoire_ville: null,
+          laboratoire_adresse: null,
+          laboratoire_telephone: null
+        })
+        .eq('user_id', user_id);
+      if (pErr) return json({ error: pErr.message }, 500);
+
+      const { error: uErr } = await admin.auth.admin.updateUserById(user_id, {
+        user_metadata: { role, laboratoire_id: laboId }
+      });
+      if (uErr) return json({ error: uErr.message }, 500);
+
+      return json({ ok: true, laboratoire_id: laboId });
+    }
+
     case 'role': {
       if (!ROLES.includes(params.role)) return json({ error: 'Rôle invalide.' }, 400);
       const { error: pErr } = await admin

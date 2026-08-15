@@ -4,6 +4,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import RoleRoute from './components/RoleRoute';
 import AutomateScanner from './components/AutomateScanner';
 import Login from './pages/Login';
+import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import TicketCreation from './pages/TicketCreation';
 import TicketDetail from './pages/TicketDetail';
@@ -20,6 +21,7 @@ export default function App() {
       <BrowserRouter basename={basename}>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/automate/:id" element={<AutomateScanner />} />

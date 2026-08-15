@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
+import { Navigate, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import Spinner from '../components/Spinner';
 
@@ -86,6 +86,12 @@ export default function Login() {
 
       <p className="mt-6 text-center text-xs text-slate-400">
         Accès réservé au personnel BioPlus et aux laboratoires partenaires.
+      </p>
+      <p className="mt-2 text-center text-xs text-slate-500">
+        Votre laboratoire n'est pas encore inscrit ?{' '}
+        <Link to="/register" className="font-semibold text-teal-700">
+          S'inscrire via le QR code
+        </Link>
       </p>
     </div>
   );

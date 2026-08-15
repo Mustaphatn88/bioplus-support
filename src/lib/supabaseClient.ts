@@ -24,7 +24,12 @@ export interface Profile {
   user_id: string;
   laboratoire_id: string | null;
   role: Role;
+  statut: 'en_attente' | 'valide';
   full_name: string | null;
+  laboratoire_nom: string | null;
+  laboratoire_ville: string | null;
+  laboratoire_adresse: string | null;
+  laboratoire_telephone: string | null;
   created_at: string;
 }
 
