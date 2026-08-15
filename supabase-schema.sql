@@ -24,7 +24,15 @@ create table public.profiles (
   laboratoire_id uuid references public.laboratoires (id) on delete set null,
   role           text not null default 'technicien'
                  check (role in ('admin', 'responsable', 'technicien')),
+  -- 'en_attente' : auto-inscription via QR, rien n'est visible tant que l'admin n'a pas validé
+  statut         text not null default 'valide'
+                 check (statut in ('en_attente', 'valide')),
   full_name      text,
+  -- informations du laboratoire fournies à l'inscription (utilisées à la validation)
+  laboratoire_nom      text,
+  laboratoire_ville    text,
+  laboratoire_adresse  text,
+  laboratoire_telephone text,
   created_at     timestamptz not null default now()
 );
 
@@ -64,7 +72,8 @@ create index if not exists automates_labo_idx     on public.automates (laboratoi
 -- 2. FONCTIONS UTILITAIRES
 -- ---------------------------------------------------------------------------
 
--- Vrai si l'utilisateur courant appartient au laboratoire lab_id.
+-- Vrai si l'utilisateur courant appartient au laboratoire lab_id
+-- ET que son compte est validé (les comptes « en attente » ne voient rien).
 create or replace function public.is_member_of(lab_id uuid)
 returns boolean
 language sql
@@ -77,6 +86,7 @@ as $$
     from public.profiles p
     where p.user_id = auth.uid()
       and p.laboratoire_id = lab_id
+      and p.statut = 'valide'
   );
 $$;
 
@@ -104,7 +114,9 @@ as $$
   select role from public.profiles where user_id = auth.uid()
 $$;
 
--- Crée automatiquement un profil (rôle technicien) à l'inscription d'un utilisateur.
+-- Crée automatiquement le profil à l'inscription d'un utilisateur.
+-- - Inscription via l'app (QR) : statut 'en_attente' + infos du laboratoire fournies
+-- - Création par l'admin (Edge Function) : statut 'valide'
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -112,8 +124,20 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into public.profiles (user_id, role)
-  values (new.id, 'technicien')
+  insert into public.profiles (
+    user_id, role, statut, full_name,
+    laboratoire_nom, laboratoire_ville, laboratoire_adresse, laboratoire_telephone
+  )
+  values (
+    new.id,
+    'technicien',
+    coalesce(new.raw_user_meta_data->>'statut', 'valide'),
+    nullif(new.raw_user_meta_data->>'full_name', ''),
+    nullif(new.raw_user_meta_data->>'laboratoire_nom', ''),
+    nullif(new.raw_user_meta_data->>'laboratoire_ville', ''),
+    nullif(new.raw_user_meta_data->>'laboratoire_adresse', ''),
+    nullif(new.raw_user_meta_data->>'laboratoire_telephone', '')
+  )
   on conflict (user_id) do nothing;
   return new;
 end $$;
@@ -149,6 +173,11 @@ create policy "profiles_update_own"
   to authenticated
   using (user_id = auth.uid())
   with check (user_id = auth.uid());
+
+-- Un utilisateur ne peut modifier que son propre nom : le rôle, le statut et le
+-- laboratoire ne sont modifiables que par l'admin (impossible de s'auto-valider).
+revoke update on public.profiles from authenticated;
+grant update (full_name) on public.profiles to authenticated;
 
 -- profiles : l'administrateur BioPlus lit et modifie tous les profils
 -- (création de comptes, changements de rôle / de laboratoire)
