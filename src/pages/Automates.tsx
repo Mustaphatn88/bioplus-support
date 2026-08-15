@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { supabase, type Automate } from '../lib/supabaseClient';
+import { useAuth } from '../contexts/AuthContext';
 import Spinner from '../components/Spinner';
 
 const STATUT_LABELS: Record<string, string> = {
@@ -21,6 +22,7 @@ const basename = window.location.pathname.startsWith('/bioplus-support')
   : '';
 
 export default function Automates() {
+  const { profile } = useAuth();
   const [automates, setAutomates] = useState<Automate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -68,13 +70,20 @@ export default function Automates() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.nom.trim()) return;
+    if (!profile?.laboratoire_id) {
+      setError(
+        "Votre compte n'est rattaché à aucun laboratoire. Contactez l'administrateur BioPlus pour être rattaché avant d'ajouter des automates."
+      );
+      return;
+    }
     setBusy(true);
     setError(null);
     const payload = {
       nom: form.nom.trim(),
       modele: form.modele.trim() || null,
       numero_serie: form.numero_serie.trim() || null,
-      statut: form.statut
+      statut: form.statut,
+      laboratoire_id: profile.laboratoire_id
     };
     const { error: err } =
       editing === 'new'
@@ -130,9 +139,15 @@ export default function Automates() {
 
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-base font-bold text-slate-900">{automates.length} automate(s)</h2>
-        <button onClick={() => openForm('new')} className="btn-primary px-3 py-1.5 text-xs">
-          + Nouvel automate
-        </button>
+        {profile?.laboratoire_id ? (
+          <button onClick={() => openForm('new')} className="btn-primary px-3 py-1.5 text-xs">
+            + Nouvel automate
+          </button>
+        ) : (
+          <span className="badge bg-amber-100 text-amber-800">
+            Compte en attente : aucune machine
+          </span>
+        )}
       </div>
 
       {automates.length === 0 ? (
