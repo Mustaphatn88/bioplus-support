@@ -118,15 +118,24 @@ Le script : (1) applique `supabase-schema.sql` via l'API de gestion Supabase, (2
    - `VITE_SUPABASE_ANON_KEY`
 3. **Settings → Pages** : Source = **GitHub Actions** (déploiement via `actions/deploy-pages@v4`, pas de branche `gh-pages`).
 4. Poussez sur `main` : le workflow `.github/workflows/deploy.yml` installe, build avec les variables injectées, puis publie `dist/`.
-5. Option : **Settings → Pages → Custom domain** → `app.bioplus.tn`.
 
-Chaque QR code d'automate contient l'URL :
+### Alternative : Netlify (recommandé pour la production)
+
+Deep links en HTTP 200 natif (pas d'astuce 404), CDN mondial, sous-domaine `*.netlify.app` gratuit, et possibilité d'attacher n'importe quel domaine plus tard.
+
+1. Créez un compte gratuit sur https://app.netlify.com
+2. **User settings → Applications → New access token** : générez un token (`NETLIFY_AUTH_TOKEN`)
+3. Ajoutez les secrets GitHub :
+   - `NETLIFY_AUTH_TOKEN` (le token)
+   - `NETLIFY_SITE_ID` (l'id du site, obtenu après création)
+4. Créez le site (API ou dashboard, "Add new site") puis poussez sur `main` : le workflow `.github/workflows/deploy-netlify.yml` build et déploie `dist/`.
+5. Le fichier `public/_redirects` (`/* /index.html 200`) assure la redirection SPA.
+
+QR codes :
 
 ```
-https://app.bioplus.tn/automate/{id}
+https://votre-site.netlify.app/automate/{id}
 ```
-
-Après scan + connexion, l'utilisateur est redirigé vers la fiche de l'automate ; le bouton « Nouveau ticket » pré-remplit l'automate. La RLS garantit qu'un automate hors du laboratoire est invisible (accès refusé).
 
 ## Sécurité
 
