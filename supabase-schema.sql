@@ -1,0 +1,229 @@
+-- ============================================================================
+-- BioPlus Support — Schéma Supabase (PostgreSQL + RLS + Storage)
+-- Exécuter dans : Supabase Dashboard > SQL Editor > New query
+-- ============================================================================
+
+create extension if not exists pgcrypto;
+
+-- ---------------------------------------------------------------------------
+-- 1. TABLES
+-- ---------------------------------------------------------------------------
+
+create table public.laboratoires (
+  id         uuid primary key default gen_random_uuid(),
+  nom        text not null,
+  adresse    text,
+  ville      text,
+  telephone  text,
+  created_at timestamptz not null default now()
+);
+
+-- user_id = auth.uid() : ne JAMAIS utiliser auth.uid() comme identifiant de laboratoire.
+create table public.profiles (
+  user_id        uuid primary key references auth.users (id) on delete cascade,
+  laboratoire_id uuid references public.laboratoires (id) on delete set null,
+  role           text not null default 'technicien'
+                 check (role in ('admin', 'responsable', 'technicien')),
+  full_name      text,
+  created_at     timestamptz not null default now()
+);
+
+create table public.automates (
+  id            uuid primary key default gen_random_uuid(),
+  laboratoire_id uuid not null references public.laboratoires (id) on delete cascade,
+  nom           text not null,
+  modele        text,
+  numero_serie  text,
+  statut        text not null default 'actif'
+                check (statut in ('actif', 'maintenance', 'hors_service')),
+  created_at    timestamptz not null default now()
+);
+
+create table public.tickets (
+  id            uuid primary key default gen_random_uuid(),
+  laboratoire_id uuid not null references public.laboratoires (id) on delete cascade,
+  automate_id   uuid not null references public.automates (id) on delete restrict,
+  numero_serie  text,
+  message_erreur text,
+  code_erreur   text,
+  description   text,
+  photo_path    text, -- chemin dans le bucket 'photos', ex : laboratoire_123/ticket_456.jpg
+  priorite      text not null default 'normal'
+                check (priorite in ('normal', 'important', 'critique')),
+  statut        text not null default 'ouvert'
+                check (statut in ('ouvert', 'en_cours', 'resolu')),
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz
+);
+
+create index if not exists tickets_laboratoire_idx on public.tickets (laboratoire_id);
+create index if not exists tickets_automate_idx   on public.tickets (automate_id);
+create index if not exists automates_labo_idx     on public.automates (laboratoire_id);
+
+-- ---------------------------------------------------------------------------
+-- 2. FONCTIONS UTILITAIRES
+-- ---------------------------------------------------------------------------
+
+-- Vrai si l'utilisateur courant appartient au laboratoire lab_id.
+create or replace function public.is_member_of(lab_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.profiles p
+    where p.user_id = auth.uid()
+      and p.laboratoire_id = lab_id
+  );
+$$;
+
+-- Cast sécurisé text -> uuid (évite une erreur si le dossier Storage est malformé).
+create or replace function public.uuid_or_null(value text)
+returns uuid
+language plpgsql
+immutable
+as $$
+begin
+  return value::uuid;
+exception
+  when others then
+    return null;
+end $$;
+
+-- Crée automatiquement un profil (rôle technicien) à l'inscription d'un utilisateur.
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.profiles (user_id, role)
+  values (new.id, 'technicien')
+  on conflict (user_id) do nothing;
+  return new;
+end $$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.handle_new_user();
+
+-- ---------------------------------------------------------------------------
+-- 3. ROW LEVEL SECURITY
+-- ---------------------------------------------------------------------------
+
+alter table public.laboratoires enable row level security;
+alter table public.profiles      enable row level security;
+alter table public.automates     enable row level security;
+alter table public.tickets       enable row level security;
+
+-- laboratoires : lecture pour tout utilisateur authentifié
+create policy "laboratoires_select_authenticated"
+  on public.laboratoires for select
+  to authenticated
+  using (true);
+
+-- profiles : chacun ne voit/modifie que son propre profil
+create policy "profiles_select_own"
+  on public.profiles for select
+  to authenticated
+  using (user_id = auth.uid());
+
+create policy "profiles_update_own"
+  on public.profiles for update
+  to authenticated
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid());
+
+-- automates : lecture pour les membres du laboratoire uniquement
+create policy "automates_select_member"
+  on public.automates for select
+  to authenticated
+  using (public.is_member_of(laboratoire_id));
+
+-- tickets : lecture / insertion / mise à jour pour les membres du laboratoire
+create policy "tickets_select_member"
+  on public.tickets for select
+  to authenticated
+  using (public.is_member_of(laboratoire_id));
+
+create policy "tickets_insert_member"
+  on public.tickets for insert
+  to authenticated
+  with check (
+    public.is_member_of(laboratoire_id)
+    and exists (
+      select 1
+      from public.automates a
+      where a.id = automate_id
+        and a.laboratoire_id = laboratoire_id
+    )
+  );
+
+create policy "tickets_update_member"
+  on public.tickets for update
+  to authenticated
+  using (public.is_member_of(laboratoire_id))
+  with check (public.is_member_of(laboratoire_id));
+
+-- ---------------------------------------------------------------------------
+-- 4. STOCKAGE DES PHOTOS (jamais de base64 en base)
+-- ---------------------------------------------------------------------------
+
+insert into storage.buckets (id, name, public)
+values ('photos', 'photos', false)
+on conflict (id) do nothing;
+
+-- Un utilisateur ne peut manipuler que les fichiers du dossier de son laboratoire.
+-- Le premier segment du chemin (folder) est le laboratoire_id.
+create policy "photos_insert_own_labo"
+  on storage.objects for insert
+  to authenticated
+  with check (
+    bucket_id = 'photos'
+    and public.is_member_of(public.uuid_or_null((storage.foldername(name))[1]))
+  );
+
+create policy "photos_select_own_labo"
+  on storage.objects for select
+  to authenticated
+  using (
+    bucket_id = 'photos'
+    and public.is_member_of(public.uuid_or_null((storage.foldername(name))[1]))
+  );
+
+create policy "photos_update_own_labo"
+  on storage.objects for update
+  to authenticated
+  using (
+    bucket_id = 'photos'
+    and public.is_member_of(public.uuid_or_null((storage.foldername(name))[1]))
+  )
+  with check (
+    bucket_id = 'photos'
+    and public.is_member_of(public.uuid_or_null((storage.foldername(name))[1]))
+  );
+
+-- ---------------------------------------------------------------------------
+-- 5. DONNÉES DE DÉMO (optionnel — à retirer ou adapter en production)
+-- ---------------------------------------------------------------------------
+
+insert into public.laboratoires (nom, ville, telephone)
+values ('Laboratoire BioPlus Tunis', 'Tunis', '+216 71 000 000')
+on conflict do nothing;
+
+insert into public.automates (laboratoire_id, nom, modele, numero_serie)
+select id, 'Pentra 60', 'Horiba ABX Pentra 60', 'P60-0001'
+from public.laboratoires
+where nom = 'Laboratoire BioPlus Tunis'
+  and not exists (select 1 from public.automates where numero_serie = 'P60-0001');
+
+-- Après avoir créé un utilisateur dans Authentication > Users, lui affecter un laboratoire :
+-- update public.profiles
+-- set laboratoire_id = (select id from public.laboratoires where nom = 'Laboratoire BioPlus Tunis'),
+--     role = 'technicien'
+-- where user_id = 'UUID_DE_L_UTILISATEUR';

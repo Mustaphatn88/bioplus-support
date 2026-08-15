@@ -1,0 +1,261 @@
+import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import {
+  supabase,
+  type Automate,
+  type Priorite
+} from '../lib/supabaseClient';
+import Spinner from '../components/Spinner';
+
+export default function TicketCreation() {
+  const { profile } = useAuth();
+  const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const preselectId = params.get('automate_id');
+
+  const [automates, setAutomates] = useState<Automate[]>([]);
+  const [automateId, setAutomateId] = useState('');
+  const [numeroSerie, setNumeroSerie] = useState('');
+  const [messageErreur, setMessageErreur] = useState('');
+  const [codeErreur, setCodeErreur] = useState('');
+  const [description, setDescription] = useState('');
+  const [priorite, setPriorite] = useState<Priorite>('normal');
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase
+      .from('automates')
+      .select('*')
+      .order('nom')
+      .then(({ data, error: err }) => {
+        if (!err && data) {
+          const list = data as Automate[];
+          setAutomates(list);
+          const initial =
+            preselectId && list.some((a) => a.id === preselectId)
+              ? preselectId
+              : (list[0]?.id ?? '');
+          setAutomateId(initial);
+        }
+        setLoading(false);
+      });
+  }, [preselectId]);
+
+  useEffect(() => {
+    const a = automates.find((x) => x.id === automateId);
+    setNumeroSerie(a?.numero_serie ?? '');
+  }, [automateId, automates]);
+
+  function handlePhoto(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    setPhotoFile(file);
+    if (photoPreview) URL.revokeObjectURL(photoPreview);
+    setPhotoPreview(file ? URL.createObjectURL(file) : null);
+  }
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    setError(null);
+
+    if (!automateId) {
+      setError('Sélectionnez un automate.');
+      return;
+    }
+    if (!description.trim()) {
+      setError('La description du problème est obligatoire.');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      let photoPath: string | null = null;
+
+      if (photoFile && profile?.laboratoire_id) {
+        const ext = photoFile.name.split('.').pop() ?? 'jpg';
+        const fileName = `${profile.laboratoire_id}/${crypto.randomUUID()}.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from('photos')
+          .upload(fileName, photoFile, { cacheControl: '3600', upsert: false });
+        if (upErr) throw new Error(`Upload de la photo impossible : ${upErr.message}`);
+        photoPath = fileName;
+      }
+
+      const { data, error: insertErr } = await supabase
+        .from('tickets')
+        .insert({
+          laboratoire_id: profile?.laboratoire_id,
+          automate_id: automateId,
+          numero_serie: numeroSerie || null,
+          message_erreur: messageErreur.trim() || null,
+          code_erreur: codeErreur.trim() || null,
+          description: description.trim(),
+          photo_path: photoPath,
+          priorite,
+          statut: 'ouvert'
+        })
+        .select()
+        .single();
+
+      if (insertErr) {
+        if (photoPath) await supabase.storage.from('photos').remove([photoPath]);
+        throw new Error(insertErr.message);
+      }
+
+      navigate(`/ticket/${(data as { id: string }).id}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Création du ticket impossible.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (loading) return <Spinner label="Chargement des automates..." />;
+
+  return (
+    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4">
+      <header className="mb-4">
+        <h1 className="text-lg font-bold text-slate-900">Nouveau ticket</h1>
+        <p className="text-xs text-slate-500">
+          Laboratoire : {profile?.laboratoire_id ? 'rattaché' : 'non défini'}
+        </p>
+      </header>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label htmlFor="automate" className="label">
+            Automate
+          </label>
+          <select
+            id="automate"
+            value={automateId}
+            onChange={(e) => setAutomateId(e.target.value)}
+            disabled={automates.length === 0}
+            className="input"
+          >
+            {automates.length === 0 && <option value="">Aucun automate disponible</option>}
+            {automates.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.nom} {a.modele ? `· ${a.modele}` : ''}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="label">N° de série (lecture seule)</label>
+          <input
+            type="text"
+            value={numeroSerie}
+            readOnly
+            disabled
+            className="input font-mono"
+            placeholder="Renseigné automatiquement"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="message_erreur" className="label">
+            Message d'erreur
+          </label>
+          <input
+            id="message_erreur"
+            type="text"
+            value={messageErreur}
+            onChange={(e) => setMessageErreur(e.target.value)}
+            className="input"
+            placeholder="Ex : WBC clumped"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="code_erreur" className="label">
+            Code erreur
+          </label>
+          <input
+            id="code_erreur"
+            type="text"
+            value={codeErreur}
+            onChange={(e) => setCodeErreur(e.target.value)}
+            className="input font-mono"
+            placeholder="Ex : 0x2A11"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="description" className="label">
+            Description du problème *
+          </label>
+          <textarea
+            id="description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            required
+            rows={4}
+            className="input resize-none"
+            placeholder="Décrivez le dysfonctionnement, les circonstances, les mesures déjà prises..."
+          />
+        </div>
+
+        <div>
+          <label htmlFor="priorite" className="label">
+            Priorité
+          </label>
+          <select
+            id="priorite"
+            value={priorite}
+            onChange={(e) => setPriorite(e.target.value as Priorite)}
+            className="input"
+          >
+            <option value="normal">Normal</option>
+            <option value="important">Important</option>
+            <option value="critique">Critique</option>
+          </select>
+        </div>
+
+        <div>
+          <label htmlFor="photo" className="label">
+            Photo (optionnelle)
+          </label>
+          <input
+            id="photo"
+            type="file"
+            accept="image/*"
+            onChange={handlePhoto}
+            className="input file:mr-3 file:rounded-lg file:border-0 file:bg-teal-700 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white"
+          />
+          {photoPreview && (
+            <img
+              src={photoPreview}
+              alt="Aperçu"
+              className="mt-2 h-40 w-full rounded-lg object-cover"
+            />
+          )}
+          <p className="mt-1 text-xs text-slate-400">
+            Stockée dans le bucket « photos » (dossier de votre laboratoire) — jamais en base64.
+          </p>
+        </div>
+
+        {error && (
+          <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
+        )}
+
+        <button type="submit" disabled={submitting} className="btn-primary w-full py-3">
+          {submitting ? 'Création en cours...' : 'Créer le ticket'}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="btn-outline w-full"
+        >
+          Annuler
+        </button>
+      </form>
+    </div>
+  );
+}
