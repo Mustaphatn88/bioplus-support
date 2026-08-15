@@ -101,10 +101,20 @@ export default function Dashboard() {
               Gestion multi-laboratoires, comptes utilisateurs et parc d'automates.
             </p>
           </div>
-          <div className="card bg-slate-100 text-center">
-            <p className="text-sm text-slate-500">
-              Cette interface super-admin sera livrée dans une version ultérieure (V2).
-            </p>
+          <div className="space-y-2">
+            <Link to="/users" className="card block transition hover:border-teal-600">
+              <p className="text-sm font-semibold text-slate-900">Comptes utilisateurs</p>
+              <p className="text-xs text-slate-500">
+                Créer les comptes des laboratoires clients (biologistes, techniciens), gérer les
+                rôles et les accès.
+              </p>
+            </Link>
+            <Link to="/automates" className="card block transition hover:border-teal-600">
+              <p className="text-sm font-semibold text-slate-900">Parc d'automates</p>
+              <p className="text-xs text-slate-500">
+                Ajouter, modifier ou retirer les machines de chaque laboratoire.
+              </p>
+            </Link>
           </div>
         </div>
       )}
@@ -123,22 +133,30 @@ export default function Dashboard() {
       {profile?.role !== 'admin' && profile?.laboratoire_id && (
         <>
           {profile.role === 'responsable' && (
-            <section className="mb-4 grid grid-cols-3 gap-2">
-              <div className="card text-center">
-                <p className="text-2xl font-bold text-slate-900">{stats.total}</p>
-                <p className="text-xs text-slate-500">Tickets</p>
-              </div>
-              <div className="card text-center">
-                <p className="text-2xl font-bold text-amber-600">
-                  {stats.byStatut.ouvert + stats.byStatut.en_cours}
+            <>
+              <section className="mb-4 grid grid-cols-3 gap-2">
+                <div className="card text-center">
+                  <p className="text-2xl font-bold text-slate-900">{stats.total}</p>
+                  <p className="text-xs text-slate-500">Tickets</p>
+                </div>
+                <div className="card text-center">
+                  <p className="text-2xl font-bold text-amber-600">
+                    {stats.byStatut.ouvert + stats.byStatut.en_cours}
+                  </p>
+                  <p className="text-xs text-slate-500">En attente</p>
+                </div>
+                <div className="card text-center">
+                  <p className="text-2xl font-bold text-red-600">{stats.byPriorite.critique}</p>
+                  <p className="text-xs text-slate-500">Critiques</p>
+                </div>
+              </section>
+              <Link to="/automates" className="card mb-4 block transition hover:border-teal-600">
+                <p className="text-sm font-semibold text-slate-900">Parc d'automates</p>
+                <p className="text-xs text-slate-500">
+                  Ajouter des machines, imprimer leurs QR codes, gérer leur statut.
                 </p>
-                <p className="text-xs text-slate-500">En attente</p>
-              </div>
-              <div className="card text-center">
-                <p className="text-2xl font-bold text-red-600">{stats.byPriorite.critique}</p>
-                <p className="text-xs text-slate-500">Critiques</p>
-              </div>
-            </section>
+              </Link>
+            </>
           )}
 
           {error && (

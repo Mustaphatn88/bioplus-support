@@ -1,0 +1,287 @@
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { supabase, type Laboratoire, type Role } from '../lib/supabaseClient';
+import Spinner from '../components/Spinner';
+
+interface ManagedUser {
+  id: string;
+  email: string;
+  role: Role;
+  laboratoire_id: string | null;
+  full_name: string | null;
+  created_at: string;
+  banned: boolean;
+}
+
+const ROLE_LABELS: Record<Role, string> = {
+  admin: 'Administrateur (BioPlus)',
+  responsable: 'Responsable (biologiste)',
+  technicien: 'Technicien'
+};
+
+const ROLE_STYLES: Record<Role, string> = {
+  admin: 'bg-purple-100 text-purple-800',
+  responsable: 'bg-teal-100 text-teal-800',
+  technicien: 'bg-slate-100 text-slate-700'
+};
+
+export default function AdminUsers() {
+  const [users, setUsers] = useState<ManagedUser[] | null>(null);
+  const [laboratoires, setLaboratoires] = useState<Laboratoire[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const [form, setForm] = useState({
+    email: '',
+    password: '',
+    full_name: '',
+    laboratoire_id: '',
+    role: 'technicien' as Role
+  });
+
+  async function refresh() {
+    setLoading(true);
+    setError(null);
+    const [usersRes, labosRes] = await Promise.all([
+      supabase.functions.invoke<{ users: ManagedUser[] }>('list-users'),
+      supabase.from('laboratoires').select('*').order('nom')
+    ]);
+    if (usersRes.error) {
+      setError(usersRes.error.message);
+    } else {
+      setUsers(usersRes.data?.users ?? []);
+    }
+    if (labosRes.error) setError(labosRes.error.message);
+    else setLaboratoires(labosRes.data as Laboratoire[]);
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    refresh();
+  }, []);
+
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    const { error } = await supabase.functions.invoke('create-user', {
+      body: {
+        email: form.email.trim(),
+        password: form.password,
+        full_name: form.full_name.trim() || null,
+        laboratoire_id: form.laboratoire_id || null,
+        role: form.role
+      }
+    });
+    setBusy(false);
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    setShowCreate(false);
+    setForm({ email: '', password: '', full_name: '', laboratoire_id: '', role: 'technicien' });
+    setNotice(`Compte ${form.email} créé.`);
+    refresh();
+  }
+
+  async function act(user: ManagedUser, action: string, params: Record<string, unknown> = {}) {
+    setBusy(true);
+    setError(null);
+    const { error } = await supabase.functions.invoke('update-user', {
+      body: { user_id: user.id, action, ...params }
+    });
+    setBusy(false);
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    refresh();
+  }
+
+  function changeRole(user: ManagedUser, role: Role) {
+    act(user, 'role', { role });
+  }
+
+  function changeLabo(user: ManagedUser, laboratoire_id: string) {
+    act(user, 'laboratoire', { laboratoire_id: laboratoire_id || null });
+  }
+
+  function resetPassword(user: ManagedUser) {
+    const password = window.prompt(`Nouveau mot de passe pour ${user.email} (6 caractères min) :`);
+    if (!password) return;
+    act(user, 'password', { password });
+  }
+
+  function toggleBan(user: ManagedUser) {
+    if (!window.confirm(user.banned ? `Réactiver ${user.email} ?` : `Désactiver ${user.email} ? Le compte ne pourra plus se connecter.`)) return;
+    act(user, user.banned ? 'unban' : 'ban');
+  }
+
+  function removeUser(user: ManagedUser) {
+    if (!window.confirm(`Supprimer définitivement ${user.email} ? Cette action est irréversible.`)) return;
+    act(user, 'delete');
+  }
+
+  if (loading && !users) return <Spinner label="Chargement des utilisateurs..." />;
+
+  return (
+    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4">
+      <header className="mb-4 flex items-center justify-between">
+        <div>
+          <h1 className="text-lg font-bold text-slate-900">Gestion des utilisateurs</h1>
+          <p className="text-xs text-slate-500">Comptes des laboratoires clients</p>
+        </div>
+        <Link to="/dashboard" className="btn-outline px-3 py-1.5 text-xs">
+          Tableau de bord
+        </Link>
+      </header>
+
+      {error && <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+      {notice && (
+        <p className="mb-3 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">{notice}</p>
+      )}
+
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-base font-bold text-slate-900">{users?.length ?? 0} compte(s)</h2>
+        <button onClick={() => setShowCreate(true)} className="btn-primary px-3 py-1.5 text-xs">
+          + Nouveau compte
+        </button>
+      </div>
+
+      <ul className="space-y-2">
+        {(users ?? []).map((u) => (
+          <li key={u.id} className="card">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-slate-900">{u.email}</p>
+                <p className="truncate text-xs text-slate-500">
+                  {u.full_name ?? '—'}
+                  {u.banned && <span className="ml-2 badge bg-red-100 text-red-700">Désactivé</span>}
+                </p>
+              </div>
+              <span className={`badge shrink-0 ${ROLE_STYLES[u.role]}`}>
+                {ROLE_LABELS[u.role]}
+              </span>
+            </div>
+            <div className="mt-3 space-y-2">
+              <select
+                value={u.role}
+                disabled={busy}
+                onChange={(e) => changeRole(u, e.target.value as Role)}
+                className="input w-full text-sm"
+              >
+                <option value="technicien">Technicien</option>
+                <option value="responsable">Responsable (biologiste)</option>
+                <option value="admin">Administrateur (BioPlus)</option>
+              </select>
+              <select
+                value={u.laboratoire_id ?? ''}
+                disabled={busy}
+                onChange={(e) => changeLabo(u, e.target.value)}
+                className="input w-full text-sm"
+              >
+                <option value="">— Aucun laboratoire —</option>
+                {laboratoires.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.nom}
+                  </option>
+                ))}
+              </select>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => resetPassword(u)}
+                  disabled={busy}
+                  className="btn-outline px-2 py-1 text-xs"
+                >
+                  Changer le mot de passe
+                </button>
+                <button
+                  onClick={() => toggleBan(u)}
+                  disabled={busy}
+                  className="btn-outline px-2 py-1 text-xs"
+                >
+                  {u.banned ? 'Réactiver' : 'Désactiver'}
+                </button>
+                <button
+                  onClick={() => removeUser(u)}
+                  disabled={busy}
+                  className="btn-outline border-red-200 text-red-600 px-2 py-1 text-xs"
+                >
+                  Supprimer
+                </button>
+              </div>
+            </div>
+          </li>
+        ))}
+      </ul>
+
+      {showCreate && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center">
+          <form onSubmit={handleCreate} className="card w-full max-w-md space-y-3">
+            <h3 className="text-base font-bold text-slate-900">Nouveau compte</h3>
+            <input
+              type="email"
+              required
+              placeholder="Email du compte"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              className="input w-full"
+            />
+            <input
+              type="text"
+              placeholder="Nom complet (ex : Dr Sonia Ben Ali)"
+              value={form.full_name}
+              onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+              className="input w-full"
+            />
+            <input
+              type="password"
+              required
+              minLength={6}
+              placeholder="Mot de passe (6 caractères min)"
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              className="input w-full"
+            />
+            <select
+              value={form.laboratoire_id}
+              onChange={(e) => setForm({ ...form, laboratoire_id: e.target.value })}
+              className="input w-full"
+            >
+              <option value="">— Aucun laboratoire —</option>
+              {laboratoires.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.nom}
+                </option>
+              ))}
+            </select>
+            <select
+              value={form.role}
+              onChange={(e) => setForm({ ...form, role: e.target.value as Role })}
+              className="input w-full"
+            >
+              <option value="technicien">Technicien</option>
+              <option value="responsable">Responsable (biologiste)</option>
+              <option value="admin">Administrateur (BioPlus)</option>
+            </select>
+            <div className="flex gap-2">
+              <button type="submit" disabled={busy} className="btn-primary flex-1">
+                {busy ? 'Création...' : 'Créer le compte'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowCreate(false)}
+                className="btn-outline flex-1"
+              >
+                Annuler
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+}
