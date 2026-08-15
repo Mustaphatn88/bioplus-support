@@ -32,6 +32,19 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showRegQr, setShowRegQr] = useState(false);
+  const [pendingCount, setPendingCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (profile?.role !== 'admin') return;
+    supabase
+      .functions
+      .invoke<{ users: Array<{ statut: string }> }>('list-users')
+      .then(({ data }) => {
+        setPendingCount(
+          data?.users.filter((u) => u.statut === 'en_attente').length ?? 0
+        );
+      });
+  }, [profile?.role]);
 
   useEffect(() => {
     if (!profile?.laboratoire_id) {
@@ -118,7 +131,14 @@ export default function Dashboard() {
           </div>
           <div className="space-y-2">
             <Link to="/users" className="card block transition hover:border-teal-600">
-              <p className="text-sm font-semibold text-slate-900">Comptes utilisateurs</p>
+              <p className="text-sm font-semibold text-slate-900">
+                Comptes utilisateurs
+                {pendingCount ? (
+                  <span className="ml-2 badge bg-amber-100 text-amber-800">
+                    {pendingCount} demande(s) en attente
+                  </span>
+                ) : null}
+              </p>
               <p className="text-xs text-slate-500">
                 Valider les inscriptions des laboratoires clients, gérer les rôles et les accès.
               </p>

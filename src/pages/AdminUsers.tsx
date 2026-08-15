@@ -70,6 +70,8 @@ export default function AdminUsers() {
 
   useEffect(() => {
     refresh();
+    const timer = setInterval(refresh, 30000);
+    return () => clearInterval(timer);
   }, []);
 
   async function handleCreate(e: React.FormEvent) {
@@ -172,10 +174,22 @@ export default function AdminUsers() {
       )}
 
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-base font-bold text-slate-900">{users?.length ?? 0} compte(s)</h2>
-        <button onClick={() => setShowCreate(true)} className="btn-primary px-3 py-1.5 text-xs">
-          + Nouveau compte
-        </button>
+        <h2 className="text-base font-bold text-slate-900">
+          {users?.length ?? 0} compte(s)
+          {pendingUsers.length > 0 && (
+            <span className="ml-2 badge bg-amber-100 text-amber-800">
+              {pendingUsers.length} demande(s) en attente
+            </span>
+          )}
+        </h2>
+        <div className="flex gap-2">
+          <button onClick={refresh} disabled={loading} className="btn-outline px-3 py-1.5 text-xs">
+            Actualiser
+          </button>
+          <button onClick={() => setShowCreate(true)} className="btn-primary px-3 py-1.5 text-xs">
+            + Nouveau compte
+          </button>
+        </div>
       </div>
 
       {pendingUsers.length > 0 && (

@@ -9,3 +9,8 @@ dist/
 Thumbs.db
 .vscode/
 .idea/
+
+# Secrets locaux (mots de passe, tokens) — ne jamais committer
+MOTS_DE_PASSE.txt
+secrets*.txt
+*.key
