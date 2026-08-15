@@ -78,6 +78,19 @@ npm run dev            # http://localhost:5173
 
 ## Configuration Supabase
 
+### Option A — Automatique (recommandée)
+
+Une fois le projet Supabase créé, exécutez depuis la racine du dépôt :
+
+```powershell
+./scripts/setup-supabase.ps1 -ProjectRef "abcdefghijkl" `
+  -AccessToken "sbp_..." -AnonKey "eyJ..."
+```
+
+Le script : (1) applique `supabase-schema.sql` via l'API de gestion Supabase, (2) configure les secrets GitHub, (3) écrit `.env`, (4) lance le déploiement de production.
+
+### Option B — Manuelle
+
 1. Créez un projet Supabase.
 2. **SQL Editor** → collez le contenu de `supabase-schema.sql` → Run. Cela crée :
    - les tables `laboratoires`, `profiles`, `automates`, `tickets` ;
@@ -93,7 +106,7 @@ npm run dev            # http://localhost:5173
        role = 'technicien'        -- ou 'responsable'
    where user_id = 'UUID_DE_L_UTILISATEUR';
    ```
-5. **Project Settings → API** : copiez `Project URL` et `anon public key` dans `.env`.
+5. **Project Settings → API** : copiez `Project URL` et `anon public key` dans `.env` et dans les secrets GitHub (voir ci-dessous).
 
 > Les clés Supabase d'un projet sont publiques (anon). Elles servent uniquement à démarrer le client ; toute la sécurité repose sur le RLS.
 
