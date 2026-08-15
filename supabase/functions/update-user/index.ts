@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
   const { user_id, action, ...params } = await req.json();
   if (!user_id) return json({ error: 'Identifiant utilisateur requis.' }, 400);
 
-  const ACTIONS = ['role', 'laboratoire', 'password', 'ban', 'unban', 'delete', 'approve'];
+  const ACTIONS = ['role', 'laboratoire', 'password', 'ban', 'unban', 'delete', 'approve', 'email'];
   if (!ACTIONS.includes(action)) return json({ error: 'Action invalide.' }, 400);
 
   switch (action) {
@@ -136,6 +136,16 @@ Deno.serve(async (req) => {
       const { error } = await admin.auth.admin.updateUserById(user_id, {
         password: params.password
       });
+      if (error) return json({ error: error.message }, 500);
+      return json({ ok: true });
+    }
+
+    case 'email': {
+      const email = String(params.email ?? '').trim().toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return json({ error: 'Adresse email invalide.' }, 400);
+      }
+      const { error } = await admin.auth.admin.updateUserById(user_id, { email });
       if (error) return json({ error: error.message }, 500);
       return json({ ok: true });
     }

@@ -126,6 +126,12 @@ export default function AdminUsers() {
     act(user, 'password', { password });
   }
 
+  function changeEmail(user: ManagedUser) {
+    const email = window.prompt(`Nouvelle adresse email pour ${user.email} :`, user.email);
+    if (!email || email === user.email) return;
+    act(user, 'email', { email });
+  }
+
   function toggleBan(user: ManagedUser) {
     if (!window.confirm(user.banned ? `Réactiver ${user.email} ?` : `Désactiver ${user.email} ? Le compte ne pourra plus se connecter.`)) return;
     act(user, user.banned ? 'unban' : 'ban');
@@ -286,6 +292,13 @@ export default function AdminUsers() {
                 ))}
               </select>
               <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => changeEmail(u)}
+                  disabled={busy}
+                  className="btn-outline px-2 py-1 text-xs"
+                >
+                  Changer l'email
+                </button>
                 <button
                   onClick={() => resetPassword(u)}
                   disabled={busy}
