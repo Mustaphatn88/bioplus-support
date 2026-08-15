@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import Spinner from '../components/Spinner';
 
 export default function Login() {
   const { user, loading, signIn } = useAuth();
@@ -13,7 +14,9 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  if (!loading && user) return <Navigate to={redirect} replace />;
+  if (loading) return <Spinner label="Chargement..." />;
+
+  if (user) return <Navigate to={redirect} replace />;
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
