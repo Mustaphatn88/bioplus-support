@@ -15,6 +15,9 @@ create table public.laboratoires (
   adresse    text,
   ville      text,
   telephone  text,
+  -- false : entité interne BioPlus (service technique) — jamais dans le
+  -- portefeuille clients et ne peut PAS créer de réclamations.
+  est_client boolean not null default true,
   created_at timestamptz not null default now()
 );
 
@@ -250,6 +253,11 @@ create policy "tickets_insert_member"
       from public.automates a
       where a.id = automate_id
         and a.laboratoire_id = laboratoire_id
+    )
+    -- le service technique BioPlus (est_client = false) ne peut pas réclamer
+    and exists (
+      select 1 from public.laboratoires l
+      where l.id = laboratoire_id and l.est_client
     )
   );
 

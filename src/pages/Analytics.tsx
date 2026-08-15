@@ -57,7 +57,7 @@ export default function Analytics() {
         .order('created_at', { ascending: false })
         .limit(1000),
       supabase.from('automates').select('*'),
-      supabase.from('laboratoires').select('*'),
+      supabase.from('laboratoires').select('*').eq('est_client', true),
       supabase.functions.invoke<{ users: ClientUser[] }>('list-users')
     ]);
     if (tickRes.error) setError(tickRes.error.message);

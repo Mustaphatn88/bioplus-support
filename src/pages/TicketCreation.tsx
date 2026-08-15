@@ -27,6 +27,7 @@ export default function TicketCreation() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [blocked, setBlocked] = useState<string | null>(null);
 
   const MAX_DIMENSION = 1280;
   const JPEG_QUALITY = 0.82;
@@ -115,6 +116,22 @@ export default function TicketCreation() {
   }, [preselectId]);
 
   useEffect(() => {
+    if (!profile?.laboratoire_id) return;
+    supabase
+      .from('laboratoires')
+      .select('nom, est_client')
+      .eq('id', profile.laboratoire_id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data && data.est_client === false) {
+          setBlocked(
+            `${data.nom} est le service technique de BioPlus, pas un laboratoire client : il ne peut pas créer de réclamations.`
+          );
+        }
+      });
+  }, [profile?.laboratoire_id]);
+
+  useEffect(() => {
     const a = automates.find((x) => x.id === automateId);
     setNumeroSerie(a?.numero_serie ?? '');
   }, [automateId, automates]);
@@ -181,6 +198,19 @@ export default function TicketCreation() {
   }
 
   if (loading) return <Spinner label="Chargement des automates..." />;
+
+  if (blocked) {
+    return (
+      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4">
+        <header className="mb-4">
+          <h1 className="text-lg font-bold text-slate-900 page-title">Nouveau ticket</h1>
+        </header>
+        <div className="card border-red-200 bg-red-50 text-sm text-red-700">
+          {blocked}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4">

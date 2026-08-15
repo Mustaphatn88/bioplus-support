@@ -37,7 +37,7 @@ export default function Clients() {
     setLoading(true);
     setError(null);
     const [laboRes, autoRes, tickRes, usersRes] = await Promise.all([
-      supabase.from('laboratoires').select('*').order('nom'),
+      supabase.from('laboratoires').select('*').eq('est_client', true).order('nom'),
       supabase.from('automates').select('*').order('nom'),
       supabase
         .from('tickets')

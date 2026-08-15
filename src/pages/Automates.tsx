@@ -51,6 +51,7 @@ export default function Automates() {
       const { data: labos } = await supabase
         .from('laboratoires')
         .select('id, nom')
+        .eq('est_client', true)
         .order('nom');
       if (labos) setLaboratoires(labos);
     }

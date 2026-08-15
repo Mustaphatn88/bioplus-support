@@ -62,7 +62,7 @@ export default function AdminUsers() {
     setError(null);
     const [usersRes, labosRes] = await Promise.all([
       supabase.functions.invoke<{ users: ManagedUser[] }>('list-users'),
-      supabase.from('laboratoires').select('*').order('nom')
+      supabase.from('laboratoires').select('*').eq('est_client', true).order('nom')
     ]);
     if (usersRes.error) {
       setError(usersRes.error.message);
