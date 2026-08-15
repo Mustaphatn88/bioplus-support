@@ -7,10 +7,14 @@ import Dashboard from './pages/Dashboard';
 import TicketCreation from './pages/TicketCreation';
 import TicketDetail from './pages/TicketDetail';
 
+const basename = window.location.pathname.startsWith('/bioplus-support')
+  ? '/bioplus-support'
+  : '/';
+
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
+      <BrowserRouter basename={basename}>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route element={<ProtectedRoute />}>
