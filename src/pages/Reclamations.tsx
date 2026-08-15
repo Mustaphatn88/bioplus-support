@@ -43,7 +43,7 @@ export default function Reclamations() {
       supabase
         .from('tickets')
         .select(
-          '*, automates(id, nom, modele), laboratoire:laboratoires(id, nom), technicien:profiles!tickets_technicien_id_fkey(email, full_name)'
+          '*, automates(id, nom, modele), laboratoire:laboratoires(id, nom), technicien:profiles!tickets_technicien_id_fkey(full_name)'
         )
         .order('created_at', { ascending: false })
         .limit(200),
@@ -116,7 +116,7 @@ export default function Reclamations() {
           </select>
           {t.technicien && (
             <p className="text-xs text-slate-500">
-              Assigné à : <strong>{t.technicien.full_name ?? t.technicien.email}</strong>
+              Assigné à : <strong>{t.technicien.full_name ?? 'Technicien BioPlus'}</strong>
             </p>
           )}
         </div>

@@ -64,6 +64,6 @@ export interface Ticket {
 
 export interface TicketWithAutomate extends Ticket {
   automates: Pick<Automate, 'id' | 'nom' | 'modele'> | null;
-  technicien?: { email: string; full_name: string | null } | null;
+  technicien?: { full_name: string | null } | null;
   laboratoire?: Pick<Laboratoire, 'id' | 'nom'> | null;
 }
