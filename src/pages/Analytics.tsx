@@ -10,6 +10,7 @@ import {
   downloadCsv,
   fmtDuration,
   prioriteCount,
+  resolutionMinutes,
   statutCount,
   techStats,
   type ClientUser,
@@ -85,6 +86,23 @@ export default function Analytics() {
   const techs = useMemo(() => techStats(tickets, users), [tickets, users]);
   const machines = useMemo(() => byAutomate(tickets, automates), [tickets, automates]);
 
+  const critiques = tickets.filter((t) => t.priorite === 'critique');
+  const critiquesResolues = critiques.filter((t) => t.statut === 'resolu');
+  const slaOk = critiquesResolues.filter((t) => (resolutionMinutes(t) ?? Infinity) <= 1440);
+  const slaRate = critiquesResolues.length
+    ? Math.round((slaOk.length / critiquesResolues.length) * 100)
+    : null;
+
+  const cutoff7j = Date.now() - 7 * 86400000;
+  const alerts = machines
+    .map((m) => ({
+      ...m,
+      critiques7j: critiques.filter(
+        (t) => t.automate_id === m.id && new Date(t.created_at).getTime() >= cutoff7j
+      ).length
+    }))
+    .filter((m) => m.critiques7j >= 2);
+
   function exportAll() {
     downloadCsv(
       exportCsv(tickets, laboratoires as LaboInfo[], automates, users),
@@ -146,6 +164,33 @@ export default function Analytics() {
           ))}
         </div>
       </section>
+
+      <section className="card mb-4">
+        <h2 className="mb-2 text-sm font-bold text-slate-900">SLA — critiques résolues en moins de 24 h</h2>
+        <div className="flex items-end gap-3">
+          <p className="text-2xl font-bold text-red-600">{slaRate === null ? '—' : `${slaRate}%`}</p>
+          <p className="pb-1 text-xs text-slate-500">
+            {slaOk.length} sur {critiquesResolues.length} réclamation(s) critique(s) résolue(s)
+            dans les 24 h · {critiques.length - critiquesResolues.length} critique(s) encore ouverte(s)
+          </p>
+        </div>
+      </section>
+
+      {alerts.length > 0 && (
+        <section className="card mb-4 border-red-200 bg-red-50">
+          <h2 className="mb-1 text-sm font-bold text-red-800">
+            Alertes — machines à problème (2+ critiques / 7 jours)
+          </h2>
+          <ul className="space-y-1">
+            {alerts.map((a) => (
+              <li key={a.id} className="flex items-center justify-between text-xs">
+                <span className="font-semibold text-red-700">{a.nom}</span>
+                <span className="badge bg-red-100 text-red-700">{a.critiques7j} critique(s)</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="card mb-4">
         <h2 className="mb-2 text-sm font-bold text-slate-900">Activité — 30 derniers jours</h2>

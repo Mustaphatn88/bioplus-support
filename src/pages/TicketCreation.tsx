@@ -166,6 +166,12 @@ export default function TicketCreation() {
         throw new Error(insertErr.message);
       }
 
+      if (priorite === 'critique') {
+        supabase.functions.invoke('notify', {
+          body: { type: 'critique', ticket_id: (data as { id: string }).id }
+        });
+      }
+
       navigate(`/ticket/${(data as { id: string }).id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Création du ticket impossible.');

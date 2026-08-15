@@ -67,3 +67,12 @@ export interface TicketWithAutomate extends Ticket {
   technicien?: { full_name: string | null } | null;
   laboratoire?: Pick<Laboratoire, 'id' | 'nom'> | null;
 }
+
+export interface Intervention {
+  id: string;
+  ticket_id: string;
+  user_id: string;
+  message: string;
+  created_at: string;
+  profiles?: { full_name: string | null } | null;
+}

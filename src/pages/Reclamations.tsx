@@ -74,13 +74,41 @@ export default function Reclamations() {
       .eq('id', t.id);
     setBusyId(null);
     if (err) setError(err.message);
-    else refresh();
+    else {
+      if (technicienId) {
+        supabase.functions.invoke('notify', {
+          body: { type: 'assignation', ticket_id: t.id, technicien_id: technicienId }
+        });
+      }
+      refresh();
+    }
   }
+
+  const [search, setSearch] = useState('');
+  const [statutFilter, setStatutFilter] = useState('');
+  const [prioriteFilter, setPrioriteFilter] = useState('');
+  const [laboFilter, setLaboFilter] = useState('');
+
+  const filtered = tickets.filter((t) => {
+    if (search) {
+      const hay = `${t.message_erreur ?? ''} ${t.description ?? ''} ${t.automates?.nom ?? ''} ${t.laboratoire?.nom ?? ''} ${t.code_erreur ?? ''}`.toLowerCase();
+      if (!hay.includes(search.toLowerCase())) return false;
+    }
+    if (statutFilter && t.statut !== statutFilter) return false;
+    if (prioriteFilter && t.priorite !== prioriteFilter) return false;
+    if (laboFilter && t.laboratoire_id !== laboFilter) return false;
+    return true;
+  });
+
+  const labos = [...new Map(tickets.map((t) => [t.laboratoire_id, t.laboratoire?.nom])).entries()]
+    .filter(([, nom]) => nom)
+    .map(([id, nom]) => ({ id: id as string, nom: nom as string }))
+    .sort((a, b) => a.nom.localeCompare(b.nom));
 
   if (loading && tickets.length === 0) return <Spinner label="Chargement des réclamations..." />;
 
-  const aDispatcher = tickets.filter((t) => !t.technicien_id && t.statut !== 'resolu');
-  const suivies = tickets.filter((t) => t.technicien_id || t.statut === 'resolu');
+  const aDispatcher = filtered.filter((t) => !t.technicien_id && t.statut !== 'resolu');
+  const suivies = filtered.filter((t) => t.technicien_id || t.statut === 'resolu');
 
   function renderTicket(t: TicketWithAutomate, showLabo: boolean) {
     return (
@@ -144,6 +172,48 @@ export default function Reclamations() {
       </header>
 
       {error && <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+
+      <div className="card mb-4 space-y-2">
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Rechercher (machine, erreur, laboratoire, code...)"
+          className="input w-full text-sm"
+        />
+        <div className="grid grid-cols-3 gap-2">
+          <select value={statutFilter} onChange={(e) => setStatutFilter(e.target.value)} className="input text-sm">
+            <option value="">Statut</option>
+            <option value="ouvert">Ouvert</option>
+            <option value="en_cours">En cours</option>
+            <option value="resolu">Résolu</option>
+          </select>
+          <select value={prioriteFilter} onChange={(e) => setPrioriteFilter(e.target.value)} className="input text-sm">
+            <option value="">Priorité</option>
+            <option value="normal">Normal</option>
+            <option value="important">Important</option>
+            <option value="critique">Critique</option>
+          </select>
+          <select value={laboFilter} onChange={(e) => setLaboFilter(e.target.value)} className="input text-sm">
+            <option value="">Laboratoire</option>
+            {labos.map((l) => (
+              <option key={l.id} value={l.id}>{l.nom}</option>
+            ))}
+          </select>
+        </div>
+        {(search || statutFilter || prioriteFilter || laboFilter) && (
+          <button
+            onClick={() => {
+              setSearch('');
+              setStatutFilter('');
+              setPrioriteFilter('');
+              setLaboFilter('');
+            }}
+            className="text-xs font-semibold text-teal-700"
+          >
+            Réinitialiser les filtres
+          </button>
+        )}
+      </div>
 
       {aDispatcher.length > 0 && (
         <section className="mb-5">

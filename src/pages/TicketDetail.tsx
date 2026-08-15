@@ -1,6 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { supabase, type Statut, type TicketWithAutomate } from '../lib/supabaseClient';
+import {
+  supabase,
+  type Intervention,
+  type Statut,
+  type TicketWithAutomate
+} from '../lib/supabaseClient';
+import { useAuth } from '../contexts/AuthContext';
 import Spinner from '../components/Spinner';
 
 const STATUT_STYLES: Record<Statut, string> = {
@@ -17,6 +23,7 @@ const PRIORITE_STYLES: Record<'normal' | 'important' | 'critique', string> = {
 
 export default function TicketDetail() {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
   const [ticket, setTicket] = useState<TicketWithAutomate | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [statut, setStatut] = useState<Statut>('ouvert');
@@ -24,6 +31,9 @@ export default function TicketDetail() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [interventions, setInterventions] = useState<Intervention[]>([]);
+  const [interventionText, setInterventionText] = useState('');
+  const [posting, setPosting] = useState(false);
 
   useEffect(() => {
     if (!id) {
@@ -54,6 +64,40 @@ export default function TicketDetail() {
         setLoading(false);
       });
   }, [id]);
+
+  async function loadInterventions() {
+    if (!id) return;
+    const { data, error: err } = await supabase
+      .from('interventions')
+      .select('*, profiles(full_name)')
+      .eq('ticket_id', id)
+      .order('created_at', { ascending: true });
+    if (!err && data) setInterventions(data as Intervention[]);
+  }
+
+  useEffect(() => {
+    loadInterventions();
+    const timer = setInterval(loadInterventions, 30000);
+    return () => clearInterval(timer);
+  }, [id]);
+
+  async function handlePostIntervention(e: FormEvent) {
+    e.preventDefault();
+    if (!id || !interventionText.trim()) return;
+    setPosting(true);
+    setError(null);
+    const { error: err } = await supabase.from('interventions').insert({
+      ticket_id: id,
+      message: interventionText.trim()
+    });
+    setPosting(false);
+    if (err) {
+      setError(err.message);
+      return;
+    }
+    setInterventionText('');
+    loadInterventions();
+  }
 
   async function handleSaveStatut() {
     if (!ticket) return;
@@ -192,6 +236,46 @@ export default function TicketDetail() {
           </div>
           {saved && <p className="mt-2 text-xs font-medium text-green-700">Statut enregistré.</p>}
           {error && <p className="mt-2 text-xs font-medium text-red-700">{error}</p>}
+        </div>
+
+        <div className="card">
+          <h3 className="mb-2 text-sm font-semibold text-slate-900">
+            Journal des interventions ({interventions.length})
+          </h3>
+          {interventions.length === 0 ? (
+            <p className="mb-2 text-xs text-slate-500">
+              Aucune intervention pour l'instant — soyez le premier à commenter.
+            </p>
+          ) : (
+            <ul className="mb-3 max-h-72 space-y-2 overflow-y-auto">
+              {interventions.map((i) => (
+                <li key={i.id} className="rounded-lg bg-slate-50 px-2 py-1.5 text-xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-semibold text-slate-800">
+                      {i.profiles?.full_name ?? 'Utilisateur BioPlus'}
+                      {i.user_id === user?.id ? ' (vous)' : ''}
+                    </span>
+                    <span className="shrink-0 text-slate-400">
+                      {new Date(i.created_at).toLocaleString('fr-FR')}
+                    </span>
+                  </div>
+                  <p className="mt-0.5 whitespace-pre-wrap text-slate-700">{i.message}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+          <form onSubmit={handlePostIntervention} className="flex gap-2">
+            <input
+              value={interventionText}
+              onChange={(e) => setInterventionText(e.target.value)}
+              placeholder="Ajouter une intervention (diagnostic, pièce remplacée...)"
+              maxLength={2000}
+              className="input flex-1 text-sm"
+            />
+            <button type="submit" disabled={posting || !interventionText.trim()} className="btn-primary shrink-0">
+              {posting ? '...' : 'Ajouter'}
+            </button>
+          </form>
         </div>
 
         <Link to="/dashboard" className="btn-outline w-full">
