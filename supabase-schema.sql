@@ -198,13 +198,12 @@ create policy "automates_select_member"
   to authenticated
   using (public.is_member_of(laboratoire_id));
 
--- automates : ajout / modification / suppression par responsable ou admin du laboratoire
+-- automates : ajout / modification par tout membre du laboratoire (biologiste, technicien)
 create policy "automates_insert_manager"
   on public.automates for insert
   to authenticated
   with check (
     public.is_member_of(laboratoire_id)
-    and public.current_role() in ('responsable', 'admin')
   );
 
 create policy "automates_update_manager"
@@ -212,11 +211,9 @@ create policy "automates_update_manager"
   to authenticated
   using (
     public.is_member_of(laboratoire_id)
-    and public.current_role() in ('responsable', 'admin')
   )
   with check (
     public.is_member_of(laboratoire_id)
-    and public.current_role() in ('responsable', 'admin')
   );
 
 create policy "automates_delete_manager"
