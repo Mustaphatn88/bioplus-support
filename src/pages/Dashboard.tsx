@@ -131,7 +131,9 @@ export default function Dashboard() {
         <div>
           <h1 className="text-lg font-bold text-slate-900">BioPlus Support</h1>
           <p className="text-xs text-slate-500">
-            {laboratoire?.nom ?? 'Profil non rattaché'} · {profile?.role}
+            {profile?.role === 'admin'
+              ? 'BioPlus · Service Technique'
+              : `${laboratoire?.nom ?? 'Profil non rattaché'} · ${profile?.role}`}
           </p>
         </div>
         <button onClick={handleLogout} className="btn-outline px-3 py-1.5 text-xs">

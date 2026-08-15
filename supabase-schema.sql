@@ -195,36 +195,37 @@ create policy "profiles_update_admin"
   using (public.current_role() = 'admin')
   with check (true);
 
--- automates : lecture pour les membres du laboratoire uniquement
+-- automates : lecture pour les membres du laboratoire + l'admin (service technique BioPlus)
 create policy "automates_select_member"
   on public.automates for select
   to authenticated
-  using (public.is_member_of(laboratoire_id));
+  using (public.is_member_of(laboratoire_id) or public.current_role() = 'admin');
 
 -- automates : ajout / modification par tout membre du laboratoire (biologiste, technicien)
+-- ou par l'admin (qui choisit le laboratoire propriétaire dans le formulaire)
 create policy "automates_insert_manager"
   on public.automates for insert
   to authenticated
   with check (
-    public.is_member_of(laboratoire_id)
+    public.is_member_of(laboratoire_id) or public.current_role() = 'admin'
   );
 
 create policy "automates_update_manager"
   on public.automates for update
   to authenticated
   using (
-    public.is_member_of(laboratoire_id)
+    public.is_member_of(laboratoire_id) or public.current_role() = 'admin'
   )
   with check (
-    public.is_member_of(laboratoire_id)
+    public.is_member_of(laboratoire_id) or public.current_role() = 'admin'
   );
 
+-- automates : suppression par responsable ou admin (n'importe quel laboratoire pour l'admin)
 create policy "automates_delete_manager"
   on public.automates for delete
   to authenticated
   using (
-    public.is_member_of(laboratoire_id)
-    and public.current_role() in ('responsable', 'admin')
+    public.current_role() in ('responsable', 'admin')
   );
 
 -- tickets : lecture pour les membres du laboratoire, l'admin (dispatch) et le technicien assigné

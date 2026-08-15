@@ -278,19 +278,25 @@ export default function AdminUsers() {
                 <option value="responsable">Responsable (biologiste)</option>
                 <option value="admin">Administrateur (BioPlus)</option>
               </select>
-              <select
-                value={u.laboratoire_id ?? ''}
-                disabled={busy}
-                onChange={(e) => changeLabo(u, e.target.value)}
-                className="input w-full text-sm"
-              >
-                <option value="">— Aucun laboratoire —</option>
-                {laboratoires.map((l) => (
-                  <option key={l.id} value={l.id}>
-                    {l.nom}
-                  </option>
-                ))}
-              </select>
+              {u.role === 'admin' ? (
+                <p className="input w-full text-sm text-slate-500">
+                  BioPlus · Service Technique (sans laboratoire)
+                </p>
+              ) : (
+                <select
+                  value={u.laboratoire_id ?? ''}
+                  disabled={busy}
+                  onChange={(e) => changeLabo(u, e.target.value)}
+                  className="input w-full text-sm"
+                >
+                  <option value="">— Aucun laboratoire —</option>
+                  {laboratoires.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.nom}
+                    </option>
+                  ))}
+                </select>
+              )}
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => changeEmail(u)}

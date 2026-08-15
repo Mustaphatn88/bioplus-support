@@ -24,6 +24,7 @@ const basename = window.location.pathname.startsWith('/bioplus-support')
 export default function Automates() {
   const { profile } = useAuth();
   const [automates, setAutomates] = useState<Automate[]>([]);
+  const [laboratoires, setLaboratoires] = useState<{ id: string; nom: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -34,7 +35,8 @@ export default function Automates() {
     nom: '',
     modele: '',
     numero_serie: '',
-    statut: 'actif'
+    statut: 'actif',
+    laboratoire_id: ''
   });
 
   async function refresh() {
@@ -45,11 +47,19 @@ export default function Automates() {
       .order('created_at', { ascending: false });
     if (err) setError(err.message);
     else setAutomates(data as Automate[]);
+    if (profile?.role === 'admin') {
+      const { data: labos } = await supabase
+        .from('laboratoires')
+        .select('id, nom')
+        .order('nom');
+      if (labos) setLaboratoires(labos);
+    }
     setLoading(false);
   }
 
   useEffect(() => {
     refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function openForm(a: Automate | 'new') {
@@ -57,12 +67,13 @@ export default function Automates() {
     setError(null);
     setForm(
       a === 'new'
-        ? { nom: '', modele: '', numero_serie: '', statut: 'actif' }
+        ? { nom: '', modele: '', numero_serie: '', statut: 'actif', laboratoire_id: '' }
         : {
             nom: a.nom,
             modele: a.modele ?? '',
             numero_serie: a.numero_serie ?? '',
-            statut: a.statut ?? 'actif'
+            statut: a.statut ?? 'actif',
+            laboratoire_id: a.laboratoire_id ?? ''
           }
     );
   }
@@ -70,9 +81,13 @@ export default function Automates() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.nom.trim()) return;
-    if (!profile?.laboratoire_id) {
+    const isAdmin = profile?.role === 'admin';
+    const laboId = isAdmin ? form.laboratoire_id : profile?.laboratoire_id;
+    if (!laboId) {
       setError(
-        "Votre compte n'est rattaché à aucun laboratoire. Contactez l'administrateur BioPlus pour être rattaché avant d'ajouter des automates."
+        isAdmin
+          ? 'Choisissez le laboratoire propriétaire de la machine.'
+          : "Votre compte n'est rattaché à aucun laboratoire. Contactez l'administrateur BioPlus pour être rattaché avant d'ajouter des automates."
       );
       return;
     }
@@ -83,7 +98,7 @@ export default function Automates() {
       modele: form.modele.trim() || null,
       numero_serie: form.numero_serie.trim() || null,
       statut: form.statut,
-      laboratoire_id: profile.laboratoire_id
+      laboratoire_id: laboId
     };
     const { error: err } =
       editing === 'new'
@@ -210,6 +225,21 @@ export default function Automates() {
               onChange={(e) => setForm({ ...form, nom: e.target.value })}
               className="input w-full"
             />
+            {profile?.role === 'admin' && (
+              <select
+                required
+                value={form.laboratoire_id}
+                onChange={(e) => setForm({ ...form, laboratoire_id: e.target.value })}
+                className="input w-full"
+              >
+                <option value="">— Laboratoire propriétaire —</option>
+                {laboratoires.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.nom}
+                  </option>
+                ))}
+              </select>
+            )}
             <input
               type="text"
               placeholder="Modèle (ex : Horiba ABX Pentra 60)"
