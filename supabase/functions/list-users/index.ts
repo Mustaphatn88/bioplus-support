@@ -1,12 +1,19 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, apikey, x-client-info, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS'
+};
+
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
     status,
-    headers: { 'Content-Type': 'application/json' }
+    headers: { 'Content-Type': 'application/json', ...corsHeaders }
   });
 
 Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   const token = (req.headers.get('Authorization') ?? '').replace('Bearer ', '');
   if (!token) return json({ error: 'Authentification requise.' }, 401);
 
