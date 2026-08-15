@@ -29,10 +29,12 @@ export default function Dashboard() {
 
   const [laboratoire, setLaboratoire] = useState<Laboratoire | null>(null);
   const [tickets, setTickets] = useState<TicketWithAutomate[]>([]);
+  const [assigned, setAssigned] = useState<TicketWithAutomate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showRegQr, setShowRegQr] = useState(false);
   const [pendingCount, setPendingCount] = useState<number | null>(null);
+  const [openCount, setOpenCount] = useState<number | null>(null);
 
   useEffect(() => {
     if (profile?.role !== 'admin') return;
@@ -44,6 +46,12 @@ export default function Dashboard() {
           data?.users.filter((u) => u.statut === 'en_attente').length ?? 0
         );
       });
+    supabase
+      .from('tickets')
+      .select('id', { count: 'exact', head: true })
+      .eq('technicien_id', null)
+      .neq('statut', 'resolu')
+      .then(({ count }) => setOpenCount(count ?? 0));
   }, [profile?.role]);
 
   useEffect(() => {
@@ -70,6 +78,37 @@ export default function Dashboard() {
       setLoading(false);
     });
   }, [profile?.laboratoire_id]);
+
+  useEffect(() => {
+    if (profile?.role !== 'technicien' || !user) {
+      setAssigned([]);
+      return;
+    }
+    supabase
+      .from('tickets')
+      .select('*, automates(id, nom, modele), laboratoire:laboratoires(id, nom)')
+      .eq('technicien_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(100)
+      .then(({ data, error: err }) => {
+        if (err) setError(err.message);
+        else setAssigned(data as TicketWithAutomate[]);
+      });
+  }, [profile?.role, user?.id]);
+
+  async function setStatut(t: TicketWithAutomate, statut: Statut) {
+    setError(null);
+    const { error: err } = await supabase
+      .from('tickets')
+      .update({ statut, updated_at: new Date().toISOString() })
+      .eq('id', t.id);
+    if (err) setError(err.message);
+    else {
+      setAssigned((prev) =>
+        prev.map((x) => (x.id === t.id ? { ...x, statut } : x))
+      );
+    }
+  }
 
   const stats = useMemo(() => {
     const byStatut: Record<Statut, number> = { ouvert: 0, en_cours: 0, resolu: 0 };
@@ -130,6 +169,19 @@ export default function Dashboard() {
             </p>
           </div>
           <div className="space-y-2">
+            <Link to="/reclamations" className="card block transition hover:border-teal-600">
+              <p className="text-sm font-semibold text-slate-900">
+                Réclamations des laboratoires
+                {openCount ? (
+                  <span className="ml-2 badge bg-red-100 text-red-700">
+                    {openCount} à dispatcher
+                  </span>
+                ) : null}
+              </p>
+              <p className="text-xs text-slate-500">
+                Recevoir les réclamations des biologistes et les assigner au technicien adéquat.
+              </p>
+            </Link>
             <Link to="/users" className="card block transition hover:border-teal-600">
               <p className="text-sm font-semibold text-slate-900">
                 Comptes utilisateurs
@@ -157,6 +209,75 @@ export default function Dashboard() {
             </button>
           </div>
         </div>
+      )}
+
+      {profile?.role === 'technicien' && (
+        <>
+          {error && (
+            <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
+          )}
+
+          <section className="mb-4">
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="text-base font-bold text-slate-900">
+                Mes réclamations ({assigned.length})
+              </h2>
+              <span className="text-xs text-slate-400">
+                Assignées par l'administration
+              </span>
+            </div>
+
+            {assigned.length === 0 ? (
+              <div className="card bg-slate-100 text-center">
+                <p className="text-sm text-slate-500">
+                  Aucune réclamation assignée pour le moment.
+                </p>
+              </div>
+            ) : (
+              <ul className="space-y-2">
+                {assigned.map((t) => (
+                  <li key={t.id} className="card">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-slate-900">
+                          {t.automates?.nom ?? 'Automate supprimé'}
+                        </p>
+                        <p className="truncate text-xs text-slate-500">
+                          {t.laboratoire?.nom ?? 'Laboratoire inconnu'} ·{' '}
+                          {t.message_erreur ?? t.description ?? 'Sans message'}
+                        </p>
+                      </div>
+                      <span className={`badge shrink-0 ${PRIORITE_STYLES[t.priorite]}`}>
+                        {t.priorite}
+                      </span>
+                    </div>
+                    <div className="mt-3 flex items-center justify-between gap-2">
+                      <span className={`badge ${STATUT_STYLES[t.statut]}`}>{t.statut}</span>
+                      <div className="flex gap-2">
+                        {t.statut === 'ouvert' && (
+                          <button
+                            onClick={() => setStatut(t, 'en_cours')}
+                            className="btn-outline px-2 py-1 text-xs"
+                          >
+                            Prendre en cours
+                          </button>
+                        )}
+                        {t.statut !== 'resolu' && (
+                          <button
+                            onClick={() => setStatut(t, 'resolu')}
+                            className="btn-primary px-2 py-1 text-xs"
+                          >
+                            Résoudre
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </>
       )}
 
       {profile?.role !== 'admin' && !profile?.laboratoire_id && (

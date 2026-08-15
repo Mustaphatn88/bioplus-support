@@ -60,12 +60,15 @@ create table public.tickets (
                 check (priorite in ('normal', 'important', 'critique')),
   statut        text not null default 'ouvert'
                 check (statut in ('ouvert', 'en_cours', 'resolu')),
+  -- technicien BioPlus désigné par l'admin pour traiter la réclamation (dispatch)
+  technicien_id uuid references public.profiles (user_id) on delete set null,
   created_at    timestamptz not null default now(),
   updated_at    timestamptz
 );
 
 create index if not exists tickets_laboratoire_idx on public.tickets (laboratoire_id);
 create index if not exists tickets_automate_idx   on public.tickets (automate_id);
+create index if not exists tickets_technicien_idx on public.tickets (technicien_id);
 create index if not exists automates_labo_idx     on public.automates (laboratoire_id);
 
 -- ---------------------------------------------------------------------------
@@ -224,11 +227,15 @@ create policy "automates_delete_manager"
     and public.current_role() in ('responsable', 'admin')
   );
 
--- tickets : lecture / insertion / mise à jour pour les membres du laboratoire
+-- tickets : lecture pour les membres du laboratoire, l'admin (dispatch) et le technicien assigné
 create policy "tickets_select_member"
   on public.tickets for select
   to authenticated
-  using (public.is_member_of(laboratoire_id));
+  using (
+    public.is_member_of(laboratoire_id)
+    or public.current_role() = 'admin'
+    or technicien_id = auth.uid()
+  );
 
 create policy "tickets_insert_member"
   on public.tickets for insert
@@ -243,11 +250,21 @@ create policy "tickets_insert_member"
     )
   );
 
+-- tickets : mise à jour par le membre du laboratoire, l'admin (assignation)
+-- et le technicien assigné (suivi du statut).
 create policy "tickets_update_member"
   on public.tickets for update
   to authenticated
-  using (public.is_member_of(laboratoire_id))
-  with check (public.is_member_of(laboratoire_id));
+  using (
+    public.is_member_of(laboratoire_id)
+    or public.current_role() = 'admin'
+    or technicien_id = auth.uid()
+  )
+  with check (
+    public.is_member_of(laboratoire_id)
+    or public.current_role() = 'admin'
+    or technicien_id = auth.uid()
+  );
 
 -- ---------------------------------------------------------------------------
 -- 4. STOCKAGE DES PHOTOS (jamais de base64 en base)

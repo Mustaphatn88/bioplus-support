@@ -57,10 +57,13 @@ export interface Ticket {
   photo_path: string | null;
   priorite: Priorite;
   statut: Statut;
+  technicien_id: string | null;
   created_at: string;
   updated_at: string | null;
 }
 
 export interface TicketWithAutomate extends Ticket {
   automates: Pick<Automate, 'id' | 'nom' | 'modele'> | null;
+  technicien?: { email: string; full_name: string | null } | null;
+  laboratoire?: Pick<Laboratoire, 'id' | 'nom'> | null;
 }
