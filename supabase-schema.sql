@@ -208,6 +208,14 @@ create policy "photos_update_own_labo"
     and public.is_member_of(public.uuid_or_null((storage.foldername(name))[1]))
   );
 
+create policy "photos_delete_own_labo"
+  on storage.objects for delete
+  to authenticated
+  using (
+    bucket_id = 'photos'
+    and public.is_member_of(public.uuid_or_null((storage.foldername(name))[1]))
+  );
+
 -- ---------------------------------------------------------------------------
 -- 5. DONNÉES DE DÉMO (optionnel — à retirer ou adapter en production)
 -- ---------------------------------------------------------------------------
