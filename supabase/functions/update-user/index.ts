@@ -200,6 +200,36 @@ Deno.serve(async (req) => {
     }
 
     case 'delete': {
+      const { data: delTarget } = await admin
+        .from('profiles')
+        .select('role, laboratoire_id')
+        .eq('user_id', user_id)
+        .maybeSingle();
+
+      if (params.delete_laboratoire) {
+        const laboId = delTarget?.laboratoire_id;
+        if (!laboId) {
+          return json({ error: "Ce compte n'est rattaché à aucun laboratoire." }, 400);
+        }
+        const { data: autres } = await admin
+          .from('profiles')
+          .select('user_id')
+          .eq('laboratoire_id', laboId)
+          .neq('user_id', user_id)
+          .limit(1);
+        if (autres && autres.length > 0) {
+          return json(
+            {
+              error:
+                "Ce laboratoire a d'autres comptes utilisateurs : réaffectez-les d'abord avant de le supprimer."
+            },
+            400
+          );
+        }
+        const { error: laboErr } = await admin.from('laboratoires').delete().eq('id', laboId);
+        if (laboErr) return json({ error: laboErr.message }, 500);
+      }
+
       const { error } = await admin.auth.admin.deleteUser(user_id);
       if (error) return json({ error: error.message }, 500);
       return json({ ok: true });

@@ -107,12 +107,24 @@ export default function AdminUsers() {
   async function act(user: ManagedUser, action: string, params: Record<string, unknown> = {}) {
     setBusy(true);
     setError(null);
-    const { error } = await supabase.functions.invoke('update-user', {
+    const { error, data } = await supabase.functions.invoke('update-user', {
       body: { user_id: user.id, action, ...params }
     });
     setBusy(false);
     if (error) {
-      setError(error.message);
+      let msg = error.message;
+      try {
+        const raw = ((error as { context?: unknown }).context ?? data) as unknown;
+        if (raw) {
+          const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+          if (parsed && typeof parsed === 'object' && 'error' in parsed) {
+            msg = String((parsed as { error: string }).error);
+          }
+        }
+      } catch {
+        /* message générique conservé */
+      }
+      setError(msg);
       return;
     }
     refresh();
@@ -146,6 +158,18 @@ export default function AdminUsers() {
   function removeUser(user: ManagedUser) {
     if (!window.confirm(`Supprimer définitivement ${user.email} ? Cette action est irréversible.`)) return;
     act(user, 'delete');
+  }
+
+  function removeClient(user: ManagedUser) {
+    if (!user.laboratoire_id) return;
+    if (
+      !window.confirm(
+        `Supprimer le CLIENT ${user.full_name ?? user.email} ET son laboratoire (machines, réclamations, historique) ? Cette action est IRREVERSIBLE.`
+      )
+    ) {
+      return;
+    }
+    act(user, 'delete', { delete_laboratoire: true });
   }
 
   async function approveUser(user: ManagedUser, laboId: string, role: Role) {
@@ -338,6 +362,15 @@ export default function AdminUsers() {
                 >
                   Supprimer
                 </button>
+                {u.laboratoire_id && !isAdminAccount(u) && (
+                  <button
+                    onClick={() => removeClient(u)}
+                    disabled={busy}
+                    className="btn-outline border-red-300 bg-red-50 text-red-700 px-2 py-1 text-xs"
+                  >
+                    Supprimer client + laboratoire
+                  </button>
+                )}
               </div>
             </div>
           </li>
