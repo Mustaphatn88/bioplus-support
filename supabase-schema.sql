@@ -267,6 +267,64 @@ create policy "tickets_update_member"
   );
 
 -- ---------------------------------------------------------------------------
+-- 3b. JOURNAL DES INTERVENTIONS (commentaires chronologiques sur chaque réclamation)
+-- ---------------------------------------------------------------------------
+
+create table public.interventions (
+  id         uuid primary key default gen_random_uuid(),
+  ticket_id  uuid not null references public.tickets (id) on delete cascade,
+  user_id    uuid not null references public.profiles (user_id) on delete cascade,
+  message    text not null check (length(message) between 1 and 2000),
+  created_at timestamptz not null default now()
+);
+
+alter table public.interventions enable row level security;
+create index if not exists interventions_ticket_idx on public.interventions (ticket_id);
+
+-- Accès : mêmes droits que le ticket (membre du laboratoire, admin, technicien assigné).
+create policy "interventions_select"
+  on public.interventions for select
+  to authenticated
+  using (exists (
+    select 1 from public.tickets t
+    where t.id = ticket_id
+      and (
+        public.is_member_of(t.laboratoire_id)
+        or public.current_role() = 'admin'
+        or t.technicien_id = auth.uid()
+      )
+  ));
+
+create policy "interventions_insert"
+  on public.interventions for insert
+  to authenticated
+  with check (exists (
+    select 1 from public.tickets t
+    where t.id = ticket_id
+      and (
+        public.is_member_of(t.laboratoire_id)
+        or public.current_role() = 'admin'
+        or t.technicien_id = auth.uid()
+      )
+  ));
+
+-- L'auteur de l'intervention est TOUJOURS l'utilisateur connecté (jamais falsifiable).
+create or replace function public.handle_intervention_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  new.user_id := auth.uid();
+  return new;
+end $$;
+
+drop trigger if exists trg_intervention_user on public.interventions;
+create trigger trg_intervention_user before insert on public.interventions
+for each row execute function public.handle_intervention_user();
+
+-- ---------------------------------------------------------------------------
 -- 4. STOCKAGE DES PHOTOS (jamais de base64 en base)
 -- ---------------------------------------------------------------------------
 
