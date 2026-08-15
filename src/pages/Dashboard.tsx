@@ -169,7 +169,7 @@ export default function Dashboard() {
             </p>
           </div>
           <div className="space-y-2">
-            <Link to="/reclamations" className="card block transition hover:border-teal-600">
+                        <Link to="/reclamations" className="card block transition hover:border-teal-600">
               <p className="text-sm font-semibold text-slate-900">
                 Réclamations des laboratoires
                 {openCount ? (
@@ -180,6 +180,20 @@ export default function Dashboard() {
               </p>
               <p className="text-xs text-slate-500">
                 Recevoir les réclamations des biologistes et les assigner au technicien adéquat.
+              </p>
+            </Link>
+            <Link to="/clients" className="card block transition hover:border-teal-600">
+              <p className="text-sm font-semibold text-slate-900">Portefeuille clients</p>
+              <p className="text-xs text-slate-500">
+                Tous les clients inscrits ou ajoutés : comptes, automates et historique complet des
+                réclamations.
+              </p>
+            </Link>
+            <Link to="/analytics" className="card block transition hover:border-teal-600">
+              <p className="text-sm font-semibold text-slate-900">Analyse & efficacité</p>
+              <p className="text-xs text-slate-500">
+                KPIs, temps de résolution, efficacité des techniciens, machines à problèmes, export
+                CSV.
               </p>
             </Link>
             <Link to="/users" className="card block transition hover:border-teal-600">

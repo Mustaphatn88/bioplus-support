@@ -10,6 +10,8 @@ import TicketCreation from './pages/TicketCreation';
 import TicketDetail from './pages/TicketDetail';
 import AdminUsers from './pages/AdminUsers';
 import Reclamations from './pages/Reclamations';
+import Clients from './pages/Clients';
+import Analytics from './pages/Analytics';
 import Automates from './pages/Automates';
 
 const basename = window.location.pathname.startsWith('/bioplus-support')
@@ -32,6 +34,8 @@ export default function App() {
           <Route element={<RoleRoute roles={['admin']} />}>
             <Route path="/users" element={<AdminUsers />} />
             <Route path="/reclamations" element={<Reclamations />} />
+            <Route path="/clients" element={<Clients />} />
+            <Route path="/analytics" element={<Analytics />} />
           </Route>
           <Route element={<RoleRoute roles={['responsable', 'admin']} />}>
             <Route path="/automates" element={<Automates />} />
