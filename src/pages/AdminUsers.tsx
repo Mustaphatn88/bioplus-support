@@ -275,6 +275,9 @@ export default function AdminUsers() {
               {u.is_super_admin && (
                 <span className="badge shrink-0 bg-amber-100 text-amber-800">Super Admin</span>
               )}
+              {u.role === 'admin' && !u.is_super_admin && (
+                <span className="badge shrink-0 bg-slate-100 text-slate-600">Admin standard</span>
+              )}
             </div>
             <div className="mt-3 space-y-2">
               <select
@@ -458,6 +461,12 @@ export default function AdminUsers() {
             {!callerIsSuper && (
               <p className="rounded-lg bg-slate-100 px-3 py-2 text-xs text-slate-500">
                 La création de comptes admin est réservée au super administrateur.
+              </p>
+            )}
+            {callerIsSuper && form.role === 'admin' && (
+              <p className="rounded-lg bg-teal-50 px-3 py-2 text-xs text-teal-700">
+                Le compte créé sera un <strong>admin standard</strong> (pas un super admin) :
+                vous seul pourrez le modifier ou le supprimer.
               </p>
             )}
             <div className="flex gap-2">
