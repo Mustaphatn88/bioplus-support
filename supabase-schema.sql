@@ -93,6 +93,17 @@ exception
     return null;
 end $$;
 
+-- Rôle de l'utilisateur courant (null si profil absent).
+create or replace function public.current_role()
+returns text
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select role from public.profiles where user_id = auth.uid()
+$$;
+
 -- Crée automatiquement un profil (rôle technicien) à l'inscription d'un utilisateur.
 create or replace function public.handle_new_user()
 returns trigger
@@ -139,11 +150,53 @@ create policy "profiles_update_own"
   using (user_id = auth.uid())
   with check (user_id = auth.uid());
 
+-- profiles : l'administrateur BioPlus lit et modifie tous les profils
+-- (création de comptes, changements de rôle / de laboratoire)
+create policy "profiles_select_admin"
+  on public.profiles for select
+  to authenticated
+  using (public.current_role() = 'admin');
+
+create policy "profiles_update_admin"
+  on public.profiles for update
+  to authenticated
+  using (public.current_role() = 'admin')
+  with check (true);
+
 -- automates : lecture pour les membres du laboratoire uniquement
 create policy "automates_select_member"
   on public.automates for select
   to authenticated
   using (public.is_member_of(laboratoire_id));
+
+-- automates : ajout / modification / suppression par responsable ou admin du laboratoire
+create policy "automates_insert_manager"
+  on public.automates for insert
+  to authenticated
+  with check (
+    public.is_member_of(laboratoire_id)
+    and public.current_role() in ('responsable', 'admin')
+  );
+
+create policy "automates_update_manager"
+  on public.automates for update
+  to authenticated
+  using (
+    public.is_member_of(laboratoire_id)
+    and public.current_role() in ('responsable', 'admin')
+  )
+  with check (
+    public.is_member_of(laboratoire_id)
+    and public.current_role() in ('responsable', 'admin')
+  );
+
+create policy "automates_delete_manager"
+  on public.automates for delete
+  to authenticated
+  using (
+    public.is_member_of(laboratoire_id)
+    and public.current_role() in ('responsable', 'admin')
+  );
 
 -- tickets : lecture / insertion / mise à jour pour les membres du laboratoire
 create policy "tickets_select_member"
@@ -224,11 +277,21 @@ insert into public.laboratoires (nom, ville, telephone)
 values ('Laboratoire BioPlus Tunis', 'Tunis', '+216 71 000 000')
 on conflict do nothing;
 
+insert into public.laboratoires (nom, adresse, ville, telephone)
+values ('Laboratoire Clinique Ibn Sina', '12 avenue Habib Bourguiba', 'La Marsa', '+216 71 111 222')
+on conflict do nothing;
+
 insert into public.automates (laboratoire_id, nom, modele, numero_serie)
 select id, 'Pentra 60', 'Horiba ABX Pentra 60', 'P60-0001'
 from public.laboratoires
 where nom = 'Laboratoire BioPlus Tunis'
   and not exists (select 1 from public.automates where numero_serie = 'P60-0001');
+
+insert into public.automates (laboratoire_id, nom, modele, numero_serie)
+select id, 'Pentra 60 CXP', 'Horiba ABX Pentra 60 CXP', 'P60-0002'
+from public.laboratoires
+where nom = 'Laboratoire Clinique Ibn Sina'
+  and not exists (select 1 from public.automates where numero_serie = 'P60-0002');
 
 -- Après avoir créé un utilisateur dans Authentication > Users, lui affecter un laboratoire :
 -- update public.profiles

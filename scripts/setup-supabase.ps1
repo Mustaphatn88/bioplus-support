@@ -15,9 +15,10 @@
 #
 # Effets :
 #   1. Applique supabase-schema.sql (tables, RLS, Storage) via l'API de gestion
-#   2. Configure les secrets GitHub VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY
-#   3. Écrit le fichier .env local
-#   4. Lance le déploiement GitHub Pages
+#   2. Déploie les Edge Functions (create-user, list-users, update-user)
+#   3. Configure les secrets GitHub VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY
+#   4. Écrit le fichier .env local
+#   5. Lance le déploiement GitHub Pages
 # ============================================================================
 
 param(
@@ -31,7 +32,7 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 if (-not $ProjectUrl) { $ProjectUrl = "https://$ProjectRef.supabase.co" }
 
-Write-Host "1/4 Application du schéma SQL sur $ProjectUrl ..."
+Write-Host "1/5 Application du schéma SQL sur $ProjectUrl ..."
 $sql = Get-Content -Raw -LiteralPath (Join-Path $root 'supabase-schema.sql')
 $body = @{ query = $sql } | ConvertTo-Json
 try {
@@ -47,25 +48,34 @@ catch {
   exit 1
 }
 
+Write-Host "2/5 Déploiement des Edge Functions ..."
+$env:SUPABASE_ACCESS_TOKEN = $AccessToken
+foreach ($fn in @('create-user', 'list-users', 'update-user')) {
+  npx --yes supabase functions deploy $fn --project-ref $ProjectRef | Out-Null
+  Write-Host "   $fn déployée."
+}
+Remove-Item Env:SUPABASE_ACCESS_TOKEN -ErrorAction SilentlyContinue
+
 $repo = gh repo view --json nameWithOwner --jq '.nameWithOwner'
 if (-not $repo) { Write-Error "gh non authentifié — exécutez 'gh auth login'."; exit 1 }
 
-Write-Host "2/4 Configuration des secrets GitHub sur $repo ..."
+Write-Host "3/5 Configuration des secrets GitHub sur $repo ..."
 gh secret set VITE_SUPABASE_URL --repo $repo --body $ProjectUrl
 gh secret set VITE_SUPABASE_ANON_KEY --repo $repo --body $AnonKey
 Write-Host "   Secrets configurés."
 
-Write-Host "3/4 Écriture du fichier .env local ..."
+Write-Host "4/5 Écriture du fichier .env local ..."
 @("VITE_SUPABASE_URL=$ProjectUrl", "VITE_SUPABASE_ANON_KEY=$AnonKey") |
   Set-Content -LiteralPath (Join-Path $root '.env') -Encoding utf8
 Write-Host "   .env écrit (ignoré par git)."
 
-Write-Host "4/4 Lancement du déploiement de production ..."
+Write-Host "5/5 Lancement du déploiement de production ..."
 gh workflow run "Deploy PWA BioPlus" --repo $repo
 Write-Host "Terminé. Suivi du déploiement : https://github.com/$repo/actions"
 
 Write-Host ""
-Write-Host "Étapes manuelles restantes :"
-Write-Host "  1. Inviter les techniciens : Authentication > Users > Add user"
-Write-Host "  2. Rattacher chaque profil à un laboratoire :"
-Write-Host "     update public.profiles set laboratoire_id = (select id from public.laboratoires where nom = 'Laboratoire BioPlus Tunis'), role = 'technicien' where user_id = '<UUID>';"
+Write-Host "Étapes suivantes :"
+Write-Host "  1. Créer le premier compte administrateur (une seule fois, hors interface) :"
+Write-Host "     POST $ProjectUrl/auth/v1/admin/users (clé service_role) puis mettre à jour le profil"
+Write-Host "  2. Tous les autres comptes (biologistes, techniciens) se créent dans l'application :"
+Write-Host "     se connecter en admin > « Comptes utilisateurs » > « + Nouveau compte »"
