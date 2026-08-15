@@ -23,9 +23,77 @@ export default function TicketCreation() {
   const [priorite, setPriorite] = useState<Priorite>('normal');
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [photoInfo, setPhotoInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const MAX_DIMENSION = 1280;
+  const JPEG_QUALITY = 0.82;
+
+  function compressImage(file: File): Promise<File> {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, MAX_DIMENSION / Math.max(img.width, img.height));
+        const w = Math.max(1, Math.round(img.width * scale));
+        const h = Math.max(1, Math.round(img.height * scale));
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        URL.revokeObjectURL(url);
+        if (!ctx) {
+          reject(new Error('Compression de la photo impossible.'));
+          return;
+        }
+        ctx.drawImage(img, 0, 0, w, h);
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              reject(new Error('Compression de la photo impossible.'));
+              return;
+            }
+            const base = file.name.replace(/\.[^.]+$/, '') || 'photo';
+            resolve(new File([blob], `${base}.jpg`, { type: 'image/jpeg' }));
+          },
+          'image/jpeg',
+          JPEG_QUALITY
+        );
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error('Photo illisible.'));
+      };
+      img.src = url;
+    });
+  }
+
+  async function handlePhoto(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    setError(null);
+    if (photoPreview) URL.revokeObjectURL(photoPreview);
+    if (!file) {
+      setPhotoFile(null);
+      setPhotoPreview(null);
+      setPhotoInfo(null);
+      return;
+    }
+    try {
+      const compressed = await compressImage(file);
+      setPhotoFile(compressed);
+      setPhotoPreview(URL.createObjectURL(compressed));
+      setPhotoInfo(
+        `Compressée : ${Math.max(1, Math.round(compressed.size / 1024))} Ko (originale : ${Math.round(file.size / 1024)} Ko)`
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Photo illisible.');
+      setPhotoFile(null);
+      setPhotoPreview(null);
+      setPhotoInfo(null);
+    }
+  }
 
   useEffect(() => {
     supabase
@@ -51,13 +119,6 @@ export default function TicketCreation() {
     setNumeroSerie(a?.numero_serie ?? '');
   }, [automateId, automates]);
 
-  function handlePhoto(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0] ?? null;
-    setPhotoFile(file);
-    if (photoPreview) URL.revokeObjectURL(photoPreview);
-    setPhotoPreview(file ? URL.createObjectURL(file) : null);
-  }
-
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
@@ -76,8 +137,7 @@ export default function TicketCreation() {
       let photoPath: string | null = null;
 
       if (photoFile && profile?.laboratoire_id) {
-        const ext = photoFile.name.split('.').pop() ?? 'jpg';
-        const fileName = `${profile.laboratoire_id}/${crypto.randomUUID()}.${ext}`;
+        const fileName = `${profile.laboratoire_id}/${crypto.randomUUID()}.jpg`;
         const { error: upErr } = await supabase.storage
           .from('photos')
           .upload(fileName, photoFile, { cacheControl: '3600', upsert: false });
@@ -235,8 +295,10 @@ export default function TicketCreation() {
               className="mt-2 h-40 w-full rounded-lg object-cover"
             />
           )}
+          {photoInfo && <p className="mt-1 text-xs text-slate-500">{photoInfo}</p>}
           <p className="mt-1 text-xs text-slate-400">
-            Stockée dans le bucket « photos » (dossier de votre laboratoire) — jamais en base64.
+            Photo compressée automatiquement (~100 Ko) avant envoi — stockée dans le bucket
+            « photos » (dossier de votre laboratoire), jamais en base64.
           </p>
         </div>
 
