@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Navigate, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import Spinner from '../components/Spinner';
+import Logo from '../components/Logo';
 
 export default function Login() {
   const { user, loading, signIn } = useAuth();
@@ -33,16 +34,19 @@ export default function Login() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 p-4">
-      <div className="mb-8 flex flex-col items-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-teal-700 text-2xl font-bold text-white">
-          BP
-        </div>
-        <h1 className="mt-3 text-2xl font-bold text-slate-900">BioPlus Support</h1>
-        <p className="text-sm text-slate-500">Support technique — automates Horiba ABX</p>
+    <div className="auth-bg">
+      <div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-32 -right-24 h-96 w-96 rounded-full bg-emerald-300/20 blur-3xl" />
+
+      <div className="relative mb-8 flex flex-col items-center">
+        <Logo size={64} className="drop-shadow-lg" />
+        <h1 className="mt-4 text-3xl font-bold tracking-tight text-white">BioPlus Support</h1>
+        <p className="mt-1 text-sm font-medium text-teal-100">
+          Support technique — automates Horiba ABX
+        </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="card w-full max-w-sm space-y-4">
+      <form onSubmit={handleSubmit} className="auth-card relative space-y-4">
         <div>
           <label htmlFor="email" className="label">
             Email
@@ -76,7 +80,7 @@ export default function Login() {
         </div>
 
         {error && (
-          <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
+          <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
         )}
 
         <button type="submit" disabled={submitting} className="btn-primary w-full py-3">
@@ -84,12 +88,12 @@ export default function Login() {
         </button>
       </form>
 
-      <p className="mt-6 text-center text-xs text-slate-400">
+      <p className="relative mt-6 text-center text-xs text-teal-100/70">
         Accès réservé au personnel BioPlus et aux laboratoires partenaires.
       </p>
-      <p className="mt-2 text-center text-xs text-slate-500">
+      <p className="relative mt-2 text-center text-xs text-white">
         Votre laboratoire n'est pas encore inscrit ?{' '}
-        <Link to="/register" className="font-semibold text-teal-700">
+        <Link to="/register" className="font-bold underline underline-offset-2 hover:text-teal-200">
           S'inscrire via le QR code
         </Link>
       </p>

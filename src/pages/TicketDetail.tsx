@@ -137,7 +137,7 @@ export default function TicketDetail() {
     <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4">
       <header className="mb-4 flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-bold text-slate-900">Ticket</h1>
+          <h1 className="text-lg font-bold text-slate-900 page-title">Ticket</h1>
           <p className="font-mono text-xs text-slate-500">#{ticket.id.slice(0, 8)}</p>
         </div>
         <Link to="/dashboard" className="text-sm font-semibold text-teal-700">

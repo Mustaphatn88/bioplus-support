@@ -84,7 +84,7 @@ export default function Clients() {
     <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4">
       <header className="mb-4 flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-bold text-slate-900">Portefeuille clients</h1>
+          <h1 className="text-lg font-bold text-slate-900 page-title">Portefeuille clients</h1>
           <p className="text-xs text-slate-500">
             {laboratoires.length} laboratoire(s) · {totalClients} actif(s) · {users.filter((u) => u.role !== 'admin').length} compte(s)
           </p>

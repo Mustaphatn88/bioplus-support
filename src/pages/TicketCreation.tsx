@@ -185,7 +185,7 @@ export default function TicketCreation() {
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4">
       <header className="mb-4">
-        <h1 className="text-lg font-bold text-slate-900">Nouveau ticket</h1>
+        <h1 className="text-lg font-bold text-slate-900 page-title">Nouveau ticket</h1>
         <p className="text-xs text-slate-500">
           Laboratoire : {profile?.laboratoire_id ? 'rattaché' : 'non défini'}
         </p>

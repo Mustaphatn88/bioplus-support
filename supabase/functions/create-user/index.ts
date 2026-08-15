@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
 
   const { data: callerProfile } = await admin
     .from('profiles')
-    .select('role')
+    .select('role, is_super_admin')
     .eq('user_id', caller.id)
     .maybeSingle();
   if (callerProfile?.role !== 'admin') {
@@ -41,6 +41,13 @@ Deno.serve(async (req) => {
   if (!email || !password) return json({ error: 'Email et mot de passe requis.' }, 400);
   if (password.length < 6) return json({ error: 'Mot de passe : 6 caractères minimum.' }, 400);
   if (!ROLES.includes(role)) return json({ error: 'Rôle invalide.' }, 400);
+
+  if (role === 'admin' && callerProfile?.is_super_admin !== true) {
+    return json(
+      { error: 'Seul le super administrateur peut créer des comptes admin.' },
+      403
+    );
+  }
 
   if (laboratoire_id) {
     const { data: labo } = await admin

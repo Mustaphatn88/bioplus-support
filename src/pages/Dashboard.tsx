@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { useAuth } from '../contexts/AuthContext';
+import Logo from '../components/Logo';
 import {
   supabase,
   type Laboratoire,
@@ -127,18 +128,26 @@ export default function Dashboard() {
 
   function renderHeader() {
     return (
-      <header className="mb-4 flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-bold text-slate-900">BioPlus Support</h1>
-          <p className="text-xs text-slate-500">
-            {profile?.role === 'admin'
-              ? 'BioPlus · Service Technique'
-              : `${laboratoire?.nom ?? 'Profil non rattaché'} · ${profile?.role}`}
-          </p>
+      <header className="mb-4 overflow-hidden rounded-2xl bg-gradient-to-r from-teal-700 to-emerald-700 p-4 text-white shadow-lg shadow-teal-900/20">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <Logo size={44} className="shrink-0" />
+            <div className="min-w-0">
+              <h1 className="truncate text-lg font-bold">BioPlus Support</h1>
+              <p className="truncate text-xs font-medium text-teal-100">
+                {profile?.role === 'admin'
+                  ? 'BioPlus · Service Technique'
+                  : `${laboratoire?.nom ?? 'Profil non rattaché'} · ${profile?.role}`}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="shrink-0 rounded-lg bg-white/15 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/25"
+          >
+            Déconnexion
+          </button>
         </div>
-        <button onClick={handleLogout} className="btn-outline px-3 py-1.5 text-xs">
-          Déconnexion
-        </button>
       </header>
     );
   }

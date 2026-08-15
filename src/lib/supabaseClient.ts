@@ -25,6 +25,7 @@ export interface Profile {
   laboratoire_id: string | null;
   role: Role;
   statut: 'en_attente' | 'valide';
+  is_super_admin: boolean;
   full_name: string | null;
   laboratoire_nom: string | null;
   laboratoire_ville: string | null;

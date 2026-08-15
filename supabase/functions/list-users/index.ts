@@ -52,6 +52,7 @@ Deno.serve(async (req) => {
       statut: p?.statut ?? 'valide',
       laboratoire_id: p?.laboratoire_id ?? null,
       full_name: p?.full_name ?? null,
+      is_super_admin: p?.is_super_admin === true,
       laboratoire_nom: p?.laboratoire_nom ?? null,
       laboratoire_ville: p?.laboratoire_ville ?? null,
       laboratoire_adresse: p?.laboratoire_adresse ?? null,

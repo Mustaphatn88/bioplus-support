@@ -27,6 +27,8 @@ create table public.profiles (
   -- 'en_attente' : auto-inscription via QR, rien n'est visible tant que l'admin n'a pas validé
   statut         text not null default 'valide'
                  check (statut in ('en_attente', 'valide')),
+  -- seul le super administrateur (m.dababi) gère les comptes admin
+  is_super_admin boolean not null default false,
   full_name      text,
   -- informations du laboratoire fournies à l'inscription (utilisées à la validation)
   laboratoire_nom      text,

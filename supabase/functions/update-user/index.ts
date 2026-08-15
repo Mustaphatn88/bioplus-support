@@ -30,18 +30,51 @@ Deno.serve(async (req) => {
 
   const { data: callerProfile } = await admin
     .from('profiles')
-    .select('role')
+    .select('role, is_super_admin')
     .eq('user_id', caller.id)
     .maybeSingle();
   if (callerProfile?.role !== 'admin') {
     return json({ error: "Accès réservé à l'administrateur BioPlus." }, 403);
   }
+  const callerIsSuper = callerProfile?.is_super_admin === true;
 
   const { user_id, action, ...params } = await req.json();
   if (!user_id) return json({ error: 'Identifiant utilisateur requis.' }, 400);
 
   const ACTIONS = ['role', 'laboratoire', 'password', 'ban', 'unban', 'delete', 'approve', 'email'];
   if (!ACTIONS.includes(action)) return json({ error: 'Action invalide.' }, 400);
+
+  const { data: targetProfile } = await admin
+    .from('profiles')
+    .select('role, is_super_admin')
+    .eq('user_id', user_id)
+    .maybeSingle();
+  if (!targetProfile) return json({ error: 'Profil introuvable.' }, 400);
+
+  const targetIsAdmin = targetProfile.role === 'admin';
+  const targetIsSuper = targetProfile.is_super_admin === true;
+
+  // Hiérarchie : seul le super administrateur (m.dababi) peut gérer les
+  // comptes administrateurs (modifier, désactiver, supprimer, changer le rôle
+  // en admin). Un admin « normal » ne peut jamais toucher à un autre admin.
+  if (action === 'delete' && targetIsAdmin && !callerIsSuper) {
+    return json({ error: 'Seul le super administrateur peut supprimer un compte admin.' }, 403);
+  }
+  if (action === 'role' && params.role === 'admin' && !callerIsSuper) {
+    return json({ error: 'Seul le super administrateur peut créer des comptes admin.' }, 403);
+  }
+  if (action === 'approve' && params.role === 'admin' && !callerIsSuper) {
+    return json({ error: 'Seul le super administrateur peut valider un compte admin.' }, 403);
+  }
+  if (targetIsAdmin && !callerIsSuper) {
+    return json(
+      { error: 'Seul le super administrateur peut modifier un compte admin.' },
+      403
+    );
+  }
+  if (targetIsSuper && caller.id !== user_id) {
+    return json({ error: 'Le super administrateur ne peut être modifié.' }, 403);
+  }
 
   switch (action) {
     case 'approve': {

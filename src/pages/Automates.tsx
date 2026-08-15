@@ -142,7 +142,7 @@ export default function Automates() {
     <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4">
       <header className="mb-4 flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-bold text-slate-900">Parc d'automates</h1>
+          <h1 className="text-lg font-bold text-slate-900 page-title">Parc d'automates</h1>
           <p className="text-xs text-slate-500">Gestion des machines de votre laboratoire</p>
         </div>
         <Link to="/dashboard" className="btn-outline px-3 py-1.5 text-xs">

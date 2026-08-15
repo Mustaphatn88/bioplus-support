@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
+import Logo from '../components/Logo';
 
 export default function Register() {
   const { user } = useAuth();
@@ -48,9 +49,11 @@ export default function Register() {
 
   if (created) {
     return (
-      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col items-center justify-center bg-slate-50 p-4">
-        <div className="card w-full text-center">
-          <h1 className="text-lg font-bold text-slate-900">Demande envoyée</h1>
+      <div className="auth-bg">
+        <div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
+        <div className="card relative w-full max-w-md text-center">
+          <Logo size={48} className="mx-auto" />
+          <h1 className="mt-3 text-lg font-bold text-slate-900">Demande envoyée</h1>
           <p className="mt-2 text-sm text-slate-600">
             Votre compte est enregistré. Il doit être <strong>validé par l'administration
             BioPlus</strong> avant utilisation (création du laboratoire et activation de
@@ -66,15 +69,18 @@ export default function Register() {
   }
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4">
-      <header className="mb-4 text-center">
-        <h1 className="text-lg font-bold text-slate-900">BioPlus Support</h1>
-        <p className="text-xs text-slate-500">
+    <div className="auth-bg">
+      <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-32 -left-24 h-96 w-96 rounded-full bg-emerald-300/20 blur-3xl" />
+      <div className="relative mb-6 flex flex-col items-center">
+        <Logo size={56} className="drop-shadow-lg" />
+        <h1 className="mt-3 text-2xl font-bold tracking-tight text-white">BioPlus Support</h1>
+        <p className="text-xs font-medium text-teal-100">
           Inscription de votre laboratoire — validation par BioPlus
         </p>
-      </header>
+      </div>
 
-      <form onSubmit={handleSubmit} className="card space-y-3">
+      <form onSubmit={handleSubmit} className="auth-card relative space-y-3">
         {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
         <div>
           <label className="label">Votre nom complet</label>

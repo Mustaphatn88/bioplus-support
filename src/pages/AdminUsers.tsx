@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase, type Laboratoire, type Role } from '../lib/supabaseClient';
+import { useAuth } from '../contexts/AuthContext';
 import Spinner from '../components/Spinner';
 
 interface ManagedUser {
@@ -10,6 +11,7 @@ interface ManagedUser {
   statut: 'en_attente' | 'valide';
   laboratoire_id: string | null;
   full_name: string | null;
+  is_super_admin: boolean;
   laboratoire_nom: string | null;
   laboratoire_ville: string | null;
   laboratoire_adresse: string | null;
@@ -31,6 +33,7 @@ const ROLE_STYLES: Record<Role, string> = {
 };
 
 export default function AdminUsers() {
+  const { profile } = useAuth();
   const [users, setUsers] = useState<ManagedUser[] | null>(null);
   const [laboratoires, setLaboratoires] = useState<Laboratoire[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,6 +45,9 @@ export default function AdminUsers() {
   const [approveLabo, setApproveLabo] = useState('');
   const [approveRole, setApproveRole] = useState<Role>('responsable');
   const [approveCreateLabo, setApproveCreateLabo] = useState(false);
+
+  const callerIsSuper = profile?.is_super_admin === true;
+  const isAdminAccount = (u: ManagedUser) => u.role === 'admin' && !u.is_super_admin;
 
   const [form, setForm] = useState({
     email: '',
@@ -166,7 +172,7 @@ export default function AdminUsers() {
     <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4">
       <header className="mb-4 flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-bold text-slate-900">Gestion des utilisateurs</h1>
+          <h1 className="text-lg font-bold text-slate-900 page-title">Gestion des utilisateurs</h1>
           <p className="text-xs text-slate-500">Comptes des laboratoires clients</p>
         </div>
         <Link to="/dashboard" className="btn-outline px-3 py-1.5 text-xs">
@@ -266,17 +272,20 @@ export default function AdminUsers() {
               <span className={`badge shrink-0 ${ROLE_STYLES[u.role]}`}>
                 {ROLE_LABELS[u.role]}
               </span>
+              {u.is_super_admin && (
+                <span className="badge shrink-0 bg-amber-100 text-amber-800">Super Admin</span>
+              )}
             </div>
             <div className="mt-3 space-y-2">
               <select
                 value={u.role}
-                disabled={busy}
+                disabled={busy || (isAdminAccount(u) && !callerIsSuper)}
                 onChange={(e) => changeRole(u, e.target.value as Role)}
                 className="input w-full text-sm"
               >
                 <option value="technicien">Technicien</option>
                 <option value="responsable">Responsable (biologiste)</option>
-                <option value="admin">Administrateur (BioPlus)</option>
+                {callerIsSuper && <option value="admin">Administrateur (BioPlus)</option>}
               </select>
               {u.role === 'admin' ? (
                 <p className="input w-full text-sm text-slate-500">
@@ -300,28 +309,28 @@ export default function AdminUsers() {
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => changeEmail(u)}
-                  disabled={busy}
+                  disabled={busy || (isAdminAccount(u) && !callerIsSuper)}
                   className="btn-outline px-2 py-1 text-xs"
                 >
                   Changer l'email
                 </button>
                 <button
                   onClick={() => resetPassword(u)}
-                  disabled={busy}
+                  disabled={busy || (isAdminAccount(u) && !callerIsSuper)}
                   className="btn-outline px-2 py-1 text-xs"
                 >
                   Changer le mot de passe
                 </button>
                 <button
                   onClick={() => toggleBan(u)}
-                  disabled={busy}
+                  disabled={busy || (isAdminAccount(u) && !callerIsSuper)}
                   className="btn-outline px-2 py-1 text-xs"
                 >
                   {u.banned ? 'Réactiver' : 'Désactiver'}
                 </button>
                 <button
                   onClick={() => removeUser(u)}
-                  disabled={busy}
+                  disabled={busy || (isAdminAccount(u) && !callerIsSuper)}
                   className="btn-outline border-red-200 text-red-600 px-2 py-1 text-xs"
                 >
                   Supprimer
@@ -379,7 +388,7 @@ export default function AdminUsers() {
             >
               <option value="responsable">Responsable (biologiste)</option>
               <option value="technicien">Technicien</option>
-              <option value="admin">Administrateur (BioPlus)</option>
+              {callerIsSuper && <option value="admin">Administrateur (BioPlus)</option>}
             </select>
             <div className="flex gap-2">
               <button
@@ -444,8 +453,13 @@ export default function AdminUsers() {
             >
               <option value="technicien">Technicien</option>
               <option value="responsable">Responsable (biologiste)</option>
-              <option value="admin">Administrateur (BioPlus)</option>
+              {callerIsSuper && <option value="admin">Administrateur (BioPlus)</option>}
             </select>
+            {!callerIsSuper && (
+              <p className="rounded-lg bg-slate-100 px-3 py-2 text-xs text-slate-500">
+                La création de comptes admin est réservée au super administrateur.
+              </p>
+            )}
             <div className="flex gap-2">
               <button type="submit" disabled={busy} className="btn-primary flex-1">
                 {busy ? 'Création...' : 'Créer le compte'}

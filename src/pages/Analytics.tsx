@@ -116,7 +116,7 @@ export default function Analytics() {
     <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4">
       <header className="mb-4 flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-bold text-slate-900">Analyse & efficacité</h1>
+          <h1 className="text-lg font-bold text-slate-900 page-title">Analyse & efficacité</h1>
           <p className="text-xs text-slate-500">Tableau de bord expert BioPlus</p>
         </div>
         <div className="flex gap-2">
