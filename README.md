@@ -24,6 +24,24 @@ Le QR code élimine toute saisie : un scan = une réclamation précise, sans err
 - **Temps réel** : Supabase Realtime — le Dashboard et la liste des réclamations se mettent à jour instantanément.
 - **PWA** : installable, fonctionne hors-ligne (Workbox), 404.html pour les liens profonds GitHub Pages.
 
+## Mode GALACTICOS (optionnel, par utilisateur)
+
+Une **double interface** activable par flag, sans aucun impact sur le mode classique :
+
+- `profiles.preferences.ui_mode` = `"classic"` (défaut) ou `"galacticos"` (Command Center, fiche automate v2, Incident Event, Galaxy View).
+- Kill switch runtime : table `app_settings` (`key='force_ui_mode'`, `value={"mode":"classic"|"galacticos"}`) — bascule globale **sans redéploiement**.
+- Kill switch de build : `VITE_FORCE_UI_MODE` (voir `.env.example`).
+- Priorité : build > runtime > préférence individuelle > classic.
+
+```sql
+-- Activer pour un utilisateur
+update profiles set preferences = '{"ui_mode":"galacticos"}'::jsonb
+where user_id = (select id from auth.users where email = 'direction@bioplus.tn');
+
+-- Tout le monde en mode classique (urgence)
+update app_settings set value = '{"mode":"classic"}'::jsonb where key = 'force_ui_mode';
+```
+
 ---
 
 ## Stack

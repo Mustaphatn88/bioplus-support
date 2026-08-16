@@ -7,7 +7,9 @@ import {
   type TicketWithAutomate
 } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
+import { useGalacticos } from '../hooks/useGalacticos';
 import Spinner from '../components/Spinner';
+import IncidentEvent from './IncidentEvent';
 
 const STATUT_STYLES: Record<Statut, string> = {
   ouvert: 'bg-blue-100 text-blue-800',
@@ -22,6 +24,11 @@ const PRIORITE_STYLES: Record<'normal' | 'important' | 'critique', string> = {
 };
 
 export default function TicketDetail() {
+  const isGalacticos = useGalacticos();
+  return isGalacticos ? <IncidentEvent /> : <ClassicTicketDetail />;
+}
+
+function ClassicTicketDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();

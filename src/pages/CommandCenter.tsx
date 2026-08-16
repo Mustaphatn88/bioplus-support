@@ -1,31 +1,20 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase, type UiMode } from '../lib/supabaseClient';
 import { setUiMode } from '../hooks/useGalacticos';
+import {
+  C,
+  LEVEL_META,
+  healthFor,
+  levelOf,
+  relTime,
+  type HealthLevel
+} from '../lib/galacticos';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Palettes du mode GALACTICOS
+// Composant
 // ─────────────────────────────────────────────────────────────────────────────
-
-const C = {
-  bg: '#05080F',
-  surface: '#0B1220',
-  cyan: '#00E5FF',
-  emerald: '#00FFA3',
-  violet: '#7C3AED',
-  warning: '#FFB703',
-  critical: '#FF0054'
-};
-
-type HealthLevel = 'online' | 'warning' | 'critical' | 'nodata';
-
-const LEVEL_META: Record<HealthLevel, { label: string; color: string; dot: string }> = {
-  online: { label: 'ONLINE', color: C.emerald, dot: '●' },
-  warning: { label: 'WARNING', color: C.warning, dot: '●' },
-  critical: { label: 'CRITICAL', color: C.critical, dot: '●' },
-  nodata: { label: 'NO DATA', color: '#475569', dot: '○' }
-};
 
 interface FleetAutomate {
   id: string;
@@ -52,44 +41,6 @@ interface FleetIntervention {
   message: string;
   created_at: string;
 }
-
-function relTime(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const min = Math.floor(diff / 60000);
-  if (min < 1) return "à l'instant";
-  if (min < 60) return `il y a ${min} min`;
-  const h = Math.floor(min / 60);
-  if (h < 24) return `il y a ${h} h`;
-  const d = Math.floor(h / 24);
-  if (d < 30) return `il y a ${d} j`;
-  return new Date(iso).toLocaleDateString('fr-FR');
-}
-
-function healthFor(
-  openCount: number,
-  lastInterventionAt: string | null
-): number | null {
-  if (openCount === 0 && !lastInterventionAt) return null;
-  let score = 100;
-  score -= 25 * openCount;
-  if (lastInterventionAt) {
-    const days = (Date.now() - new Date(lastInterventionAt).getTime()) / 86_400_000;
-    if (days > 90) score -= 20;
-    else if (days > 60) score -= 10;
-  }
-  return Math.max(0, Math.min(100, score));
-}
-
-function levelOf(score: number | null): HealthLevel {
-  if (score === null) return 'nodata';
-  if (score >= 80) return 'online';
-  if (score >= 50) return 'warning';
-  return 'critical';
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Composant
-// ─────────────────────────────────────────────────────────────────────────────
 
 export default function CommandCenter() {
   const { profile, user, signOut } = useAuth();
@@ -298,6 +249,12 @@ export default function CommandCenter() {
             <span className="hidden rounded border border-cyan-400/20 bg-cyan-400/5 px-2 py-1 text-[9px] tracking-widest text-cyan-300/80 md:inline">
               {scopeLabel}
             </span>
+            <Link
+              to="/galaxy"
+              className="rounded-lg border border-cyan-400/30 px-3 py-1.5 text-[11px] font-semibold text-cyan-300 transition hover:bg-cyan-400/10"
+            >
+              ✦ GALAXY
+            </Link>
             <button
               onClick={() => handleSetMode('classic')}
               className="rounded-lg border border-slate-600/60 px-3 py-1.5 text-[11px] font-semibold text-slate-300 transition hover:border-slate-400 hover:text-white"
@@ -421,20 +378,25 @@ export default function CommandCenter() {
             ) : (
               <ul className="divide-y divide-slate-700/40">
                 {criticalSignals.map((t) => (
-                  <li key={t.id} className="flex items-center gap-3 py-2">
-                    <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#FF0054] shadow-[0_0_8px_#FF0054]" />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-xs font-semibold text-slate-100">
-                        {t.automates?.nom ?? 'Automate supprimé'}
-                      </p>
-                      <p className="truncate text-[10px] text-slate-500">
-                        {t.laboratoire?.nom ?? 'Labo inconnu'} ·{' '}
-                        {t.message_erreur ?? t.description ?? 'Sans message'}
-                      </p>
-                    </div>
-                    <span className="shrink-0 text-[10px] tabular-nums text-slate-500">
-                      {relTime(t.created_at)}
-                    </span>
+                  <li key={t.id}>
+                    <Link
+                      to={`/automate/${t.automate_id}`}
+                      className="flex items-center gap-3 py-2 transition hover:bg-cyan-400/5"
+                    >
+                      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#FF0054] shadow-[0_0_8px_#FF0054]" />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-xs font-semibold text-slate-100">
+                          {t.automates?.nom ?? 'Automate supprimé'}
+                        </p>
+                        <p className="truncate text-[10px] text-slate-500">
+                          {t.laboratoire?.nom ?? 'Labo inconnu'} ·{' '}
+                          {t.message_erreur ?? t.description ?? 'Sans message'}
+                        </p>
+                      </div>
+                      <span className="shrink-0 text-[10px] tabular-nums text-slate-500">
+                        {relTime(t.created_at)}
+                      </span>
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -488,32 +450,37 @@ export default function CommandCenter() {
             ) : (
               <ul className="space-y-2">
                 {top5.map((f, idx) => (
-                  <li key={f.automate.id} className="flex items-center gap-3">
-                    <span className="w-5 shrink-0 text-[11px] font-bold tabular-nums text-slate-600">
-                      {String(idx + 1).padStart(2, '0')}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-baseline justify-between gap-2">
-                        <p className="truncate text-xs font-semibold text-slate-100">
-                          {f.automate.nom}
-                        </p>
-                        <span
-                          className="shrink-0 text-[11px] font-bold tabular-nums"
-                          style={{ color: LEVEL_META[levelOf(f.health)].color }}
-                        >
-                          {f.health}%
-                        </span>
+                  <li key={f.automate.id}>
+                    <Link
+                      to={`/automate/${f.automate.id}`}
+                      className="flex items-center gap-3 rounded-lg p-1 transition hover:bg-cyan-400/5"
+                    >
+                      <span className="w-5 shrink-0 text-[11px] font-bold tabular-nums text-slate-600">
+                        {String(idx + 1).padStart(2, '0')}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-baseline justify-between gap-2">
+                          <p className="truncate text-xs font-semibold text-slate-100">
+                            {f.automate.nom}
+                          </p>
+                          <span
+                            className="shrink-0 text-[11px] font-bold tabular-nums"
+                            style={{ color: LEVEL_META[levelOf(f.health)].color }}
+                          >
+                            {f.health}%
+                          </span>
+                        </div>
+                        <div className="mt-1 h-1 overflow-hidden rounded-full bg-[#05080F]">
+                          <div
+                            className="h-full rounded-full"
+                            style={{
+                              width: `${f.health ?? 0}%`,
+                              backgroundColor: LEVEL_META[levelOf(f.health)].color
+                            }}
+                          />
+                        </div>
                       </div>
-                      <div className="mt-1 h-1 overflow-hidden rounded-full bg-[#05080F]">
-                        <div
-                          className="h-full rounded-full"
-                          style={{
-                            width: `${f.health ?? 0}%`,
-                            backgroundColor: LEVEL_META[levelOf(f.health)].color
-                          }}
-                        />
-                      </div>
-                    </div>
+                    </Link>
                   </li>
                 ))}
               </ul>

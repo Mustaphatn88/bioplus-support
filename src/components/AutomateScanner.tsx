@@ -1,9 +1,16 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { supabase, type Automate } from '../lib/supabaseClient';
+import { useGalacticos } from '../hooks/useGalacticos';
 import Spinner from './Spinner';
+import AutomateProfile from '../pages/AutomateProfile';
 
 export default function AutomateScanner() {
+  const isGalacticos = useGalacticos();
+  return isGalacticos ? <AutomateProfile /> : <ClassicAutomateScanner />;
+}
+
+function ClassicAutomateScanner() {
   const { id } = useParams<{ id: string }>();
   const [automate, setAutomate] = useState<Automate | null>(null);
   const [error, setError] = useState<string | null>(null);

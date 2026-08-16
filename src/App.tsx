@@ -6,6 +6,7 @@ import AutomateScanner from './components/AutomateScanner';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
+import GalaxyView from './pages/GalaxyView';
 import TicketCreation from './pages/TicketCreation';
 import TicketDetail from './pages/TicketDetail';
 import AdminUsers from './pages/AdminUsers';
@@ -29,6 +30,7 @@ export default function App() {
           <Route path="/register" element={<Register />} />
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/galaxy" element={<GalaxyView />} />
             <Route path="/automate/:id" element={<AutomateScanner />} />
             <Route path="/ticket/new" element={<TicketCreation />} />
             <Route path="/ticket/:id" element={<TicketDetail />} />
