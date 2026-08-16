@@ -110,7 +110,9 @@ Le script : (1) applique `supabase-schema.sql` via l'API de gestion Supabase, (2
 
 > Les clés Supabase d'un projet sont publiques (anon). Elles servent uniquement à démarrer le client ; toute la sécurité repose sur le RLS.
 
-## Déploiement (GitHub Actions + Pages)
+## Déploiement (GitHub Actions + Pages) — HÔTE DE RÉFÉRENCE
+
+**URL officielle : https://mustaphatn88.github.io/bioplus-support/**
 
 1. Créez le dépôt GitHub et poussez le code (branche `main`).
 2. **Settings → Secrets and variables → Actions** : ajoutez
@@ -118,23 +120,22 @@ Le script : (1) applique `supabase-schema.sql` via l'API de gestion Supabase, (2
    - `VITE_SUPABASE_ANON_KEY`
 3. **Settings → Pages** : Source = **GitHub Actions** (déploiement via `actions/deploy-pages@v4`, pas de branche `gh-pages`).
 4. Poussez sur `main` : le workflow `.github/workflows/deploy.yml` installe, build avec les variables injectées, puis publie `dist/`.
+5. `404.html` (copie de `index.html`) assure la redirection SPA GitHub Pages.
 
-### Alternative : Netlify (recommandé pour la production)
+### Netlify (désactivé — quota du plan gratuit épuisé)
 
-Deep links en HTTP 200 natif (pas d'astuce 404), CDN mondial, sous-domaine `*.netlify.app` gratuit, et possibilité d'attacher n'importe quel domaine plus tard.
-
-1. Créez un compte gratuit sur https://app.netlify.com
-2. **User settings → Applications → New access token** : générez un token (`NETLIFY_AUTH_TOKEN`)
-3. Ajoutez les secrets GitHub :
+Le workflow `.github/workflows/deploy-netlify.yml` existe mais est **volontairement en `workflow_dispatch`** : le quota du plan gratuit a été épuisé (`JSONHTTPError: Forbidden`). Il peut être réactivé plus tard (nouveau mois ou crédits payants) :
+1. **User settings → Applications → New access token** : générez un token (`NETLIFY_AUTH_TOKEN`)
+2. Ajoutez les secrets GitHub :
    - `NETLIFY_AUTH_TOKEN` (le token)
-   - `NETLIFY_SITE_ID` (l'id du site, obtenu après création)
-4. Créez le site (API ou dashboard, "Add new site") puis poussez sur `main` : le workflow `.github/workflows/deploy-netlify.yml` build et déploie `dist/`.
-5. Le fichier `public/_redirects` (`/* /index.html 200`) assure la redirection SPA.
+   - `NETLIFY_SITE_ID` (l'id du site)
+3. Créez le site ("Add new site") puis lancez le workflow manuellement depuis l'onglet Actions.
+4. Le fichier `public/_redirects` (`/* /index.html 200`) assure la redirection SPA.
 
-QR codes :
+QR codes (encodés automatiquement avec l'URL de l'hôte courant) :
 
 ```
-https://votre-site.netlify.app/automate/{id}
+https://mustaphatn88.github.io/bioplus-support/automate/{id}
 ```
 
 ## Sécurité
