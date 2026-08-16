@@ -39,10 +39,43 @@ Deno.serve(async (req) => {
   const callerIsSuper = callerProfile?.is_super_admin === true;
 
   const { user_id, action, ...params } = await req.json();
-  if (!user_id) return json({ error: 'Identifiant utilisateur requis.' }, 400);
 
-  const ACTIONS = ['role', 'laboratoire', 'password', 'ban', 'unban', 'delete', 'approve', 'email'];
+  const ACTIONS = [
+    'role',
+    'laboratoire',
+    'password',
+    'ban',
+    'unban',
+    'delete',
+    'approve',
+    'email',
+    'delete_laboratoire'
+  ];
   if (!ACTIONS.includes(action)) return json({ error: 'Action invalide.' }, 400);
+
+  if (action === 'delete_laboratoire') {
+    const laboId = params.laboratoire_id;
+    if (!laboId) return json({ error: 'laboratoire_id manquant.' }, 400);
+    const { data: attaches } = await admin
+      .from('profiles')
+      .select('user_id')
+      .eq('laboratoire_id', laboId)
+      .limit(1);
+    if (attaches && attaches.length > 0) {
+      return json(
+        {
+          error:
+            "Ce laboratoire a encore des comptes utilisateurs : supprimez-les d'abord avant de le supprimer."
+        },
+        400
+      );
+    }
+    const { error: laboErr } = await admin.from('laboratoires').delete().eq('id', laboId);
+    if (laboErr) return json({ error: laboErr.message }, 500);
+    return json({ ok: true });
+  }
+
+  if (!user_id) return json({ error: 'Identifiant utilisateur requis.' }, 400);
 
   const { data: targetProfile } = await admin
     .from('profiles')

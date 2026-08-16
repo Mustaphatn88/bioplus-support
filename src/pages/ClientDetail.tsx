@@ -187,14 +187,11 @@ export default function ClientDetail() {
     setDeleting(true);
     setError(null);
     const user_id = comptes[0]?.id;
-    if (!user_id) {
-      setError('Aucun compte rattaché à ce client — suppression impossible depuis ici (voir Comptes utilisateurs).');
-      setDeleting(false);
-      return;
-    }
-    const { error: delUser } = await edge('update-user', { user_id, action: 'delete', delete_laboratoire: true });
+    const { error: delErr } = user_id
+      ? await edge('update-user', { user_id, action: 'delete', delete_laboratoire: true })
+      : await edge('update-user', { action: 'delete_laboratoire', laboratoire_id: labo.id });
     setDeleting(false);
-    if (delUser) setError(delUser.message);
+    if (delErr) setError(delErr.message);
     else navigate('/clients', { replace: true });
   }
 
