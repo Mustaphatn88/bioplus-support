@@ -4,6 +4,28 @@ Application web progressive (PWA) React + TypeScript + Vite + Tailwind pour la g
 
 ---
 
+## Concept
+
+**BioPlus Support** connecte trois mondes :
+
+1. **Les laboratoires clients** (responsables/biologistes) — signalent une panne en **scannant le QR code collé sur l'automate** : la réclamation est pré-remplie (machine, laboratoire) et part immédiatement.
+2. **Les techniciens BioPlus** — suivent les tickets assignés (ouvert → en cours → résolu) et notent leurs interventions.
+3. **La direction BioPlus** — gère le portefeuille clients (fiches CRM), les alertes critiques par email (destinataires validés), les statistiques et les comptes.
+
+Le QR code élimine toute saisie : un scan = une réclamation précise, sans erreur d'identification de l'équipement.
+
+## Design & mise en page
+
+- **Palette** : dégradés teal → émeraude, cartes blanches arrondies, ombres douces ; fond sombre pour l'authentification.
+- **Typographie** : Inter ; composants réutilisables (`.btn-primary`, `.input`, `.card`, `.badge`, `.page-title`).
+- **Badges** : statut = bleu (ouvert) / ambre (en cours) / vert (résolu) ; priorité = gris (normal) / ambre (important) / rouge (critique).
+- **Graphiques** : Recharts (barres 12 mois, donut, classement des machines).
+- **Responsive** : mobile-first — `max-w-md` sur téléphone, `max-w-6xl` + grilles 2/3/4 colonnes sur PC.
+- **Temps réel** : Supabase Realtime — le Dashboard et la liste des réclamations se mettent à jour instantanément.
+- **PWA** : installable, fonctionne hors-ligne (Workbox), 404.html pour les liens profonds GitHub Pages.
+
+---
+
 ## Stack
 
 | Couche        | Technologie                                        |
@@ -31,11 +53,12 @@ auth.users ──── profiles ──── laboratoires
 
 ## Rôles
 
-| Rôle        | Droits dans l'UI (V1)                                              |
-| ----------- | ------------------------------------------------------------------ |
-| technicien  | Voir son laboratoire, créer/consulter/mettre à jour ses tickets    |
-| responsable | + statistiques de son laboratoire (tickets, en attente, critiques) |
-| admin       | Layout super-admin (placeholder, livré en V2)                      |
+| Rôle         | Droits dans l'UI                                              |
+| ------------ | ------------------------------------------------------------- |
+| super admin  | Tout (admins, comptes, alarmes) — m.dababi                    |
+| admin        | Portefeuille clients, réclamations, statistiques, comptes, alarmes |
+| technicien   | Dashboard « mes tickets », interventions                      |
+| responsable  | Tickets de son laboratoire (QR), parc d'automates, statistiques |
 
 ## Structure du projet
 
