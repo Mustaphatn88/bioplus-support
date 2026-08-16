@@ -112,7 +112,7 @@ Le script : (1) applique `supabase-schema.sql` via l'API de gestion Supabase, (2
 
 ## Déploiement (GitHub Actions + Pages) — HÔTE DE RÉFÉRENCE
 
-**URL officielle : https://mustaphatn88.github.io/bioplus-support/**
+**URL officielle : https://bioplusequipements.github.io/bioplus-support/**
 
 1. Créez le dépôt GitHub et poussez le code (branche `main`).
 2. **Settings → Secrets and variables → Actions** : ajoutez
@@ -135,7 +135,7 @@ Le workflow `.github/workflows/deploy-netlify.yml` existe mais est **volontairem
 QR codes (encodés automatiquement avec l'URL de l'hôte courant) :
 
 ```
-https://mustaphatn88.github.io/bioplus-support/automate/{id}
+https://bioplusequipements.github.io/bioplus-support/automate/{id}
 ```
 
 ## Sécurité

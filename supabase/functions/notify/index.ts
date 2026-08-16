@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
 
   const labo = (ticket.laboratoire as { nom: string } | null)?.nom ?? 'Laboratoire inconnu';
   const machine = (ticket.automates as { nom: string; modele: string | null } | null)?.nom ?? 'Machine inconnue';
-  const url = `${Deno.env.get('APP_URL') ?? 'https://mustaphatn88.github.io/bioplus-support'}/ticket/${ticket_id}`;
+  const url = `${Deno.env.get('APP_URL') ?? 'https://bioplusequipements.github.io/bioplus-support'}/ticket/${ticket_id}`;
 
   let to: string | null = null;
   let subject = '';
