@@ -70,7 +70,18 @@ export default function Reclamations() {
   useEffect(() => {
     refresh();
     const timer = setInterval(refresh, 30000);
-    return () => clearInterval(timer);
+    const channel = supabase
+      .channel('reclamations-live')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'tickets' },
+        () => refresh()
+      )
+      .subscribe();
+    return () => {
+      clearInterval(timer);
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   async function assign(t: TicketWithAutomate, technicienId: string) {

@@ -38,6 +38,21 @@ export default function Dashboard() {
   const [pendingCount, setPendingCount] = useState<number | null>(null);
   const [openCount, setOpenCount] = useState<number | null>(null);
   const [alarmPendingCount, setAlarmPendingCount] = useState<number | null>(null);
+  const [live, setLive] = useState(0);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('dashboard-live')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'tickets' },
+        () => setLive((n) => n + 1)
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   useEffect(() => {
     if (profile?.role !== 'admin') return;
@@ -62,7 +77,7 @@ export default function Dashboard() {
       .eq('technicien_id', null)
       .neq('statut', 'resolu')
       .then(({ count }) => setOpenCount(count ?? 0));
-  }, [profile?.role]);
+  }, [profile?.role, live]);
 
   useEffect(() => {
     if (!profile?.laboratoire_id) {
@@ -87,7 +102,7 @@ export default function Dashboard() {
       else setTickets(tick.data as TicketWithAutomate[]);
       setLoading(false);
     });
-  }, [profile?.laboratoire_id]);
+  }, [profile?.laboratoire_id, live]);
 
   useEffect(() => {
     if (profile?.role !== 'technicien' || !user) {
@@ -104,7 +119,7 @@ export default function Dashboard() {
         if (err) setError(err.message);
         else setAssigned(data as TicketWithAutomate[]);
       });
-  }, [profile?.role, user?.id]);
+  }, [profile?.role, user?.id, live]);
 
   async function setStatut(t: TicketWithAutomate, statut: Statut) {
     setError(null);
