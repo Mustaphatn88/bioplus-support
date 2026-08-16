@@ -8,16 +8,39 @@ interface EdgeHttpError extends Error {
   context?: unknown;
 }
 
-function parseContext(ctx: unknown): { statusCode?: number; error?: string } | null {
-  if (!ctx) return null;
-  if (typeof ctx === 'string') {
-    try {
-      return JSON.parse(ctx) as { statusCode?: number; error?: string };
-    } catch {
-      return null;
-    }
+function tryParseJson(raw: string): unknown {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
   }
-  if (typeof ctx === 'object') return ctx as { statusCode?: number; error?: string };
+}
+
+async function extractBody(context: unknown): Promise<{ status?: number; body: unknown }> {
+  if (context instanceof Response) {
+    let body: unknown = null;
+    try {
+      body = await context.clone().json();
+    } catch {
+      try {
+        body = await context.clone().text();
+      } catch {
+        body = null;
+      }
+    }
+    return { status: context.status, body };
+  }
+  if (typeof context === 'string') {
+    return { body: tryParseJson(context) ?? context };
+  }
+  return { body: context };
+}
+
+function serverMessage(body: unknown): string | null {
+  if (body && typeof body === 'object' && 'error' in body) {
+    const err = (body as { error: unknown }).error;
+    if (typeof err === 'string' && err) return err;
+  }
   return null;
 }
 
@@ -27,20 +50,26 @@ export async function edge<T = unknown>(
 ): Promise<{ data: T | null; error: EdgeError | null }> {
   const { data, error } = await supabase.functions.invoke<T>(name, { body });
   if (error) {
-    const ctx = parseContext((error as EdgeHttpError).context);
-    const serverMsg = ctx?.error ?? null;
-    if (
-      ctx?.error === 'Session invalide.' ||
+    const { status, body: raw } = await extractBody((error as EdgeHttpError).context);
+    const serverMsg = serverMessage(raw);
+    const isSessionInvalid =
+      serverMsg === 'Session invalide.' ||
       error.message.includes('Session invalide') ||
-      error.message.includes('401')
-    ) {
+      status === 401 ||
+      error.message.includes('401');
+    if (isSessionInvalid) {
       await supabase.auth.signOut();
       window.location.assign('/login?expired=1');
     }
     let detail = '';
-    if (ctx && typeof ctx === 'object' && !('error' in ctx)) {
+    if (
+      !serverMsg &&
+      raw &&
+      typeof raw === 'object' &&
+      Object.keys(raw as Record<string, unknown>).length > 0
+    ) {
       try {
-        detail = ` — ${JSON.stringify(ctx).slice(0, 140)}`;
+        detail = ` — ${JSON.stringify(raw).slice(0, 140)}`;
       } catch {
         detail = '';
       }
