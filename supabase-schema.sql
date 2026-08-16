@@ -202,10 +202,11 @@ create policy "profiles_update_own"
   using (user_id = auth.uid())
   with check (user_id = auth.uid());
 
--- Un utilisateur ne peut modifier que son propre nom : le rôle, le statut et le
--- laboratoire ne sont modifiables que par l'admin (impossible de s'auto-valider).
+-- Un utilisateur ne peut modifier que son propre nom et ses préférences
+-- d'interface : le rôle, le statut et le laboratoire ne sont modifiables que
+-- par l'admin (impossible de s'auto-valider ou de se promouvoir).
 revoke update on public.profiles from authenticated;
-grant update (full_name) on public.profiles to authenticated;
+grant update (full_name, preferences) on public.profiles to authenticated;
 
 -- profiles : l'administrateur BioPlus lit et modifie tous les profils
 -- (création de comptes, changements de rôle / de laboratoire)
