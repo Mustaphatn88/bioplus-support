@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
+import { edge } from '../lib/edge';
 import { useAuth } from '../contexts/AuthContext';
 import Logo from '../components/Logo';
 import {
@@ -36,6 +37,7 @@ export default function Dashboard() {
   const [showRegQr, setShowRegQr] = useState(false);
   const [pendingCount, setPendingCount] = useState<number | null>(null);
   const [openCount, setOpenCount] = useState<number | null>(null);
+  const [alarmPendingCount, setAlarmPendingCount] = useState<number | null>(null);
 
   useEffect(() => {
     if (profile?.role !== 'admin') return;
@@ -47,6 +49,13 @@ export default function Dashboard() {
           data?.users.filter((u) => u.statut === 'en_attente').length ?? 0
         );
       });
+    edge<{ recipients: Array<{ statut: string }> }>('alarm-recipients', { action: 'list' }).then(
+      ({ data }) => {
+        setAlarmPendingCount(
+          data?.recipients.filter((r) => r.statut === 'en_attente').length ?? 0
+        );
+      }
+    );
     supabase
       .from('tickets')
       .select('id', { count: 'exact', head: true })
@@ -228,6 +237,19 @@ export default function Dashboard() {
               <p className="text-sm font-semibold text-slate-900">Parc d'automates</p>
               <p className="text-xs text-slate-500">
                 Ajouter, modifier ou retirer les machines de chaque laboratoire.
+              </p>
+            </Link>
+            <Link to="/alarms" className="card block transition hover:border-teal-600">
+              <p className="text-sm font-semibold text-slate-900">
+                Alertes par email
+                {alarmPendingCount ? (
+                  <span className="ml-2 badge bg-amber-100 text-amber-800">
+                    {alarmPendingCount} à valider
+                  </span>
+                ) : null}
+              </p>
+              <p className="text-xs text-slate-500">
+                Destinataires des alarmes critiques par email — validation par m.dababi.
               </p>
             </Link>
             <button onClick={() => setShowRegQr(true)} className="card block w-full text-left transition hover:border-teal-600">

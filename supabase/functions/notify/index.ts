@@ -52,16 +52,23 @@ Deno.serve(async (req) => {
   let body = '';
 
   if (type === 'critique') {
-    const { data: admins } = await admin
+    const emails: string[] = [];
+    const { data: supers } = await admin
       .from('profiles')
       .select('user_id')
-      .eq('role', 'admin');
-    const emails: string[] = [];
-    for (const a of admins ?? []) {
-      const { data: u } = await admin.auth.admin.getUserById(a.user_id);
-      if (u?.user?.email) emails.push(u.user.email);
+      .eq('is_super_admin', true);
+    for (const s of supers ?? []) {
+      const { data: u } = await admin.auth.admin.getUserById(s.user_id);
+      if (u?.user?.email && !emails.includes(u.user.email)) emails.push(u.user.email);
     }
-    if (emails.length === 0) return json({ ok: false, skipped: true, reason: 'aucun admin' });
+    const { data: recips } = await admin
+      .from('alarm_recipients')
+      .select('email')
+      .eq('statut', 'valide');
+    for (const r of recips ?? []) {
+      if (r.email && !emails.includes(r.email)) emails.push(r.email);
+    }
+    if (emails.length === 0) return json({ ok: false, skipped: true, reason: 'aucun destinataire' });
     to = emails.join(',');
     subject = `[CRITIQUE] Réclamation ${labo} — ${machine}`;
     body = `Une réclamation CRITIQUE vient d'être créée.\n\nLaboratoire : ${labo}\nMachine : ${machine}\nPriorité : critique\nDescription : ${ticket.description ?? ticket.message_erreur ?? '—'}\n\nOuvrir : ${url}`;
