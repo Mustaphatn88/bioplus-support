@@ -135,9 +135,9 @@ export default function Dashboard() {
             <div className="min-w-0">
               <h1 className="truncate text-lg font-bold">BioPlus Support</h1>
               <p className="truncate text-xs font-medium text-teal-100">
-                {profile?.role === 'admin'
-                  ? 'BioPlus · Service Technique'
-                  : `${laboratoire?.nom ?? 'Profil non rattaché'} · ${profile?.role}`}
+                {profile?.role === 'responsable'
+                  ? `${laboratoire?.nom ?? 'Profil non rattaché'} · Client`
+                  : 'BioPlus · Service Technique'}
               </p>
             </div>
           </div>
@@ -309,7 +309,7 @@ export default function Dashboard() {
         </>
       )}
 
-      {profile?.role !== 'admin' && !profile?.laboratoire_id && (
+      {profile?.role === 'responsable' && !profile?.laboratoire_id && (
         <div className="card border-amber-200 bg-amber-50">
           <p className="text-sm font-medium text-amber-800">
             Votre profil n'est pas encore rattaché à un laboratoire.
