@@ -80,7 +80,7 @@ export default function AutomateScanner() {
               to={`/ticket/new?automate_id=${automate.id}`}
               className="btn-primary w-full py-3 text-base"
             >
-              Nouveau ticket pour cet automate
+              Créer une réclamation pour cet automate
             </Link>
 
             <Link to="/dashboard" className="btn-outline w-full">

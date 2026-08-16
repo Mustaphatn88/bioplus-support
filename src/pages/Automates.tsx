@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { supabase, type Automate } from '../lib/supabaseClient';
@@ -139,6 +139,61 @@ export default function Automates() {
 
   if (loading) return <Spinner label="Chargement des automates..." />;
 
+  const isAdmin = profile?.role === 'admin';
+
+  const groupes = useMemo(() => {
+    if (!isAdmin) return [];
+    const parLabo = new Map<string, Automate[]>();
+    for (const a of automates) {
+      const liste = parLabo.get(a.laboratoire_id) ?? [];
+      liste.push(a);
+      parLabo.set(a.laboratoire_id, liste);
+    }
+    return [...parLabo.entries()].map(([laboId, liste]) => ({
+      laboId,
+      laboNom: laboratoires.find((l) => l.id === laboId)?.nom ?? 'Laboratoire inconnu',
+      automates: liste
+    }));
+  }, [isAdmin, automates, laboratoires]);
+
+  function renderAutomateCard(a: Automate) {
+    return (
+      <li key={a.id} className="card">
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-slate-900">{a.nom}</p>
+            <p className="truncate text-xs text-slate-500">
+              {a.modele ?? '—'}
+              {a.numero_serie ? ` · ${a.numero_serie}` : ''}
+            </p>
+          </div>
+          <span className={`badge shrink-0 ${STATUT_STYLES[a.statut ?? 'actif'] ?? ''}`}>
+            {STATUT_LABELS[a.statut ?? 'actif']}
+          </span>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button onClick={() => setQr(a)} className="btn-outline px-2 py-1 text-xs">
+            QR code
+          </button>
+          <button
+            onClick={() => openForm(a)}
+            disabled={busy}
+            className="btn-outline px-2 py-1 text-xs"
+          >
+            Modifier
+          </button>
+          <button
+            onClick={() => removeAutomate(a)}
+            disabled={busy}
+            className="btn-outline border-red-200 text-red-600 px-2 py-1 text-xs"
+          >
+            Supprimer
+          </button>
+        </div>
+      </li>
+    );
+  }
+
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4">
       <header className="mb-4 flex items-center justify-between">
@@ -170,47 +225,22 @@ export default function Automates() {
         <div className="card bg-slate-100 text-center">
           <p className="text-sm text-slate-500">Aucun automate. Ajoutez votre première machine.</p>
         </div>
-      ) : (
-        <ul className="space-y-2">
-          {automates.map((a) => (
-            <li key={a.id} className="card">
-              <div className="flex items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-slate-900">{a.nom}</p>
-                  <p className="truncate text-xs text-slate-500">
-                    {a.modele ?? '—'}
-                    {a.numero_serie ? ` · ${a.numero_serie}` : ''}
-                  </p>
-                </div>
-                <span className={`badge shrink-0 ${STATUT_STYLES[a.statut ?? 'actif'] ?? ''}`}>
-                  {STATUT_LABELS[a.statut ?? 'actif']}
+      ) : isAdmin ? (
+        <div className="space-y-3">
+          {groupes.map((g) => (
+            <section key={g.laboId}>
+              <h3 className="mb-1 text-sm font-bold text-slate-800">
+                {g.laboNom}
+                <span className="ml-1 text-xs font-normal text-slate-400">
+                  · {g.automates.length} machine(s)
                 </span>
-              </div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <button
-                  onClick={() => setQr(a)}
-                  className="btn-outline px-2 py-1 text-xs"
-                >
-                  QR code
-                </button>
-                <button
-                  onClick={() => openForm(a)}
-                  disabled={busy}
-                  className="btn-outline px-2 py-1 text-xs"
-                >
-                  Modifier
-                </button>
-                <button
-                  onClick={() => removeAutomate(a)}
-                  disabled={busy}
-                  className="btn-outline border-red-200 text-red-600 px-2 py-1 text-xs"
-                >
-                  Supprimer
-                </button>
-              </div>
-            </li>
+              </h3>
+              <ul className="space-y-2">{g.automates.map(renderAutomateCard)}</ul>
+            </section>
           ))}
-        </ul>
+        </div>
+      ) : (
+        <ul className="space-y-2">{automates.map(renderAutomateCard)}</ul>
       )}
 
       {editing && (
@@ -299,8 +329,8 @@ export default function Automates() {
               {`${window.location.origin}${basename}/automate/${qr.id}`}
             </p>
             <p className="mt-2 text-xs text-slate-500">
-              Collez ce QR sur l'automate : un technicien le scanne pour ouvrir la fiche et créer un
-              ticket.
+              Collez ce QR sur l'automate : le client le scanne pour ouvrir la fiche de la
+              machine et créer une réclamation.
             </p>
             <div className="mt-3 flex gap-2">
               <button onClick={() => window.print()} className="btn-primary flex-1">

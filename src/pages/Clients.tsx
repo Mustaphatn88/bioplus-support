@@ -25,6 +25,18 @@ const PRIORITE_STYLES: Record<string, string> = {
   critique: 'bg-red-100 text-red-700'
 };
 
+const AUTO_STATUT_LABELS: Record<string, string> = {
+  actif: 'Actif',
+  maintenance: 'En maintenance',
+  hors_service: 'Hors service'
+};
+
+const AUTO_STATUT_STYLES: Record<string, string> = {
+  actif: 'bg-green-100 text-green-800',
+  maintenance: 'bg-amber-100 text-amber-800',
+  hors_service: 'bg-red-100 text-red-700'
+};
+
 export default function Clients() {
   const [laboratoires, setLaboratoires] = useState<Laboratoire[]>([]);
   const [automates, setAutomates] = useState<Automate[]>([]);
@@ -185,39 +197,105 @@ export default function Clients() {
 
                   <div>
                     <h4 className="mb-1 text-xs font-bold text-slate-900">
-                      Historique des réclamations ({s.total})
+                      Automates du client ({s.automates})
+                    </h4>
+                    {s.automates === 0 ? (
+                      <p className="rounded-lg bg-slate-50 px-2 py-2 text-xs text-slate-500">
+                        Aucune machine enregistrée pour ce client.
+                      </p>
+                    ) : (
+                      <ul className="space-y-1">
+                        {automates
+                          .filter((a) => a.laboratoire_id === s.labo.id)
+                          .map((a) => {
+                            const nb = tickets.filter((t) => t.automate_id === a.id).length;
+                            return (
+                              <li
+                                key={a.id}
+                                className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-2 py-1.5 text-xs"
+                              >
+                                <div className="min-w-0">
+                                  <p className="truncate font-semibold text-slate-800">{a.nom}</p>
+                                  <p className="truncate text-slate-500">
+                                    {a.modele ?? '—'}
+                                    {a.numero_serie ? ` · ${a.numero_serie}` : ''} · {nb} réclamation(s)
+                                  </p>
+                                </div>
+                                <span
+                                  className={`badge shrink-0 ${AUTO_STATUT_STYLES[a.statut ?? 'actif'] ?? ''}`}
+                                >
+                                  {AUTO_STATUT_LABELS[a.statut ?? 'actif']}
+                                </span>
+                              </li>
+                            );
+                          })}
+                      </ul>
+                    )}
+                  </div>
+
+                  <div>
+                    <h4 className="mb-1 text-xs font-bold text-slate-900">
+                      Historique des réclamations par machine ({s.total})
                     </h4>
                     {s.total === 0 ? (
                       <p className="rounded-lg bg-slate-50 px-2 py-2 text-xs text-slate-500">
                         Aucune réclamation pour ce client.
                       </p>
                     ) : (
-                      <ul className="space-y-1">
-                        {tickets
-                          .filter((t) => t.laboratoire_id === s.labo.id)
-                          .slice(0, 20)
-                          .map((t) => (
-                            <li key={t.id} className="rounded-lg bg-slate-50 px-2 py-1.5 text-xs">
-                              <div className="flex items-center justify-between gap-2">
-                                <span className="truncate font-semibold text-slate-800">
-                                  {t.automates?.nom ?? 'Automate supprimé'}
-                                </span>
-                                <span className={`badge shrink-0 ${PRIORITE_STYLES[t.priorite]}`}>
-                                  {t.priorite}
-                                </span>
-                              </div>
-                              <p className="truncate text-slate-500">
-                                {t.message_erreur ?? t.description ?? 'Sans message'}
-                              </p>
-                              <div className="mt-1 flex items-center justify-between">
-                                <span className={`badge ${STATUT_STYLES[t.statut]}`}>{t.statut}</span>
-                                <span className="text-slate-400">
-                                  {new Date(t.created_at).toLocaleDateString('fr-FR')}
-                                  {t.technicien?.full_name ? ` · ${t.technicien.full_name}` : ''}
-                                </span>
-                              </div>
-                            </li>
-                          ))}
+                      <ul className="space-y-2">
+                        {automates
+                          .filter((a) => a.laboratoire_id === s.labo.id)
+                          .map((a) => {
+                            const aTickets = tickets
+                              .filter((t) => t.automate_id === a.id)
+                              .sort(
+                                (x, y) =>
+                                  new Date(y.created_at).getTime() -
+                                  new Date(x.created_at).getTime()
+                              );
+                            if (aTickets.length === 0) return null;
+                            return (
+                              <li
+                                key={a.id}
+                                className="rounded-lg border border-slate-100 bg-slate-50/60 p-2"
+                              >
+                                <p className="mb-1 text-xs font-bold text-slate-800">
+                                  {a.nom}
+                                  <span className="ml-1 font-normal text-slate-400">
+                                    · {aTickets.length} réclamation(s)
+                                  </span>
+                                </p>
+                                <ul className="space-y-1">
+                                  {aTickets.map((t) => (
+                                    <li key={t.id} className="rounded-lg bg-white px-2 py-1.5 text-xs">
+                                      <div className="flex items-center justify-between gap-2">
+                                        <span className={`badge shrink-0 ${STATUT_STYLES[t.statut]}`}>
+                                          {t.statut}
+                                        </span>
+                                        <span className={`badge shrink-0 ${PRIORITE_STYLES[t.priorite]}`}>
+                                          {t.priorite}
+                                        </span>
+                                      </div>
+                                      <p className="mt-1 truncate text-slate-500">
+                                        {t.message_erreur ?? t.description ?? 'Sans message'}
+                                      </p>
+                                      <div className="mt-1 flex items-center justify-between">
+                                        <span className="text-slate-400">
+                                          {new Date(t.created_at).toLocaleDateString('fr-FR')}
+                                          {t.technicien?.full_name
+                                            ? ` · ${t.technicien.full_name}`
+                                            : ''}
+                                        </span>
+                                        <span className="text-slate-400">
+                                          #{t.id.slice(0, 6)}
+                                        </span>
+                                      </div>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </li>
+                            );
+                          })}
                       </ul>
                     )}
                   </div>
