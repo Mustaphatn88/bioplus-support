@@ -166,7 +166,6 @@ export default function Reclamations() {
               Assigné à : <strong>{t.technicien.full_name ?? 'Technicien BioPlus'}</strong>
             </p>
           )}
-        </div>
       </li>
     );
   }
