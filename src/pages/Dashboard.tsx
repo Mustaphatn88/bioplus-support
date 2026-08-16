@@ -320,34 +320,30 @@ export default function Dashboard() {
         </div>
       )}
 
-      {profile?.role !== 'admin' && (
+      {profile?.role === 'responsable' && (
         <>
-          {profile?.role === 'responsable' && (
-            <>
-              <section className="mb-4 grid grid-cols-3 gap-2">
-                <div className="card text-center">
-                  <p className="text-2xl font-bold text-slate-900">{stats.total}</p>
-                  <p className="text-xs text-slate-500">Tickets</p>
-                </div>
-                <div className="card text-center">
-                  <p className="text-2xl font-bold text-amber-600">
-                    {stats.byStatut.ouvert + stats.byStatut.en_cours}
-                  </p>
-                  <p className="text-xs text-slate-500">En attente</p>
-                </div>
-                <div className="card text-center">
-                  <p className="text-2xl font-bold text-red-600">{stats.byPriorite.critique}</p>
-                  <p className="text-xs text-slate-500">Critiques</p>
-                </div>
-              </section>
-              <Link to="/automates" className="card mb-4 block transition hover:border-teal-600">
-                <p className="text-sm font-semibold text-slate-900">Parc d'automates</p>
-                <p className="text-xs text-slate-500">
-                  Ajouter des machines, imprimer leurs QR codes, gérer leur statut.
-                </p>
-              </Link>
-            </>
-          )}
+          <section className="mb-4 grid grid-cols-3 gap-2">
+            <div className="card text-center">
+              <p className="text-2xl font-bold text-slate-900">{stats.total}</p>
+              <p className="text-xs text-slate-500">Tickets</p>
+            </div>
+            <div className="card text-center">
+              <p className="text-2xl font-bold text-amber-600">
+                {stats.byStatut.ouvert + stats.byStatut.en_cours}
+              </p>
+              <p className="text-xs text-slate-500">En attente</p>
+            </div>
+            <div className="card text-center">
+              <p className="text-2xl font-bold text-red-600">{stats.byPriorite.critique}</p>
+              <p className="text-xs text-slate-500">Critiques</p>
+            </div>
+          </section>
+          <Link to="/automates" className="card mb-4 block transition hover:border-teal-600">
+            <p className="text-sm font-semibold text-slate-900">Parc d'automates</p>
+            <p className="text-xs text-slate-500">
+              Ajouter des machines, imprimer leurs QR codes, gérer leur statut.
+            </p>
+          </Link>
 
           {error && (
             <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
