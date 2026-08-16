@@ -62,7 +62,7 @@ export default function AdminUsers() {
     setLoading(true);
     setError(null);
     const [usersRes, labosRes] = await Promise.all([
-      edge<{ users: ManagedUser[] }>('list-users'),
+      edge<{ users: ManagedUser[] }>('list-users', undefined, { noCache: true }),
       supabase.from('laboratoires').select('*').eq('est_client', true).order('nom')
     ]);
     if (usersRes.error) {

@@ -44,10 +44,20 @@ function serverMessage(body: unknown): string | null {
   return null;
 }
 
+const cache = new Map<string, { at: number; data: unknown }>();
+const CACHE_TTL_MS = 90000;
+
 export async function edge<T = unknown>(
   name: string,
-  body?: Record<string, unknown>
+  body?: Record<string, unknown>,
+  opts?: { noCache?: boolean }
 ): Promise<{ data: T | null; error: EdgeError | null }> {
+  if (name === 'list-users' && !opts?.noCache) {
+    const hit = cache.get(name);
+    if (hit && Date.now() - hit.at < CACHE_TTL_MS) {
+      return { data: hit.data as T, error: null };
+    }
+  }
   const { data, error } = await supabase.functions.invoke<T>(name, { body });
   if (error) {
     const { status, body: raw } = await extractBody((error as EdgeHttpError).context);
@@ -75,6 +85,9 @@ export async function edge<T = unknown>(
       }
     }
     return { data: null, error: { message: (serverMsg ?? error.message) + detail } };
+  }
+  if (name === 'list-users' && !opts?.noCache) {
+    cache.set(name, { at: Date.now(), data });
   }
   return { data, error: null };
 }

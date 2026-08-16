@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { edge } from '../lib/edge';
 import { supabase, type Automate, type Laboratoire, type TicketWithAutomate } from '../lib/supabaseClient';
@@ -48,29 +48,36 @@ export default function Clients() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const refreshing = useRef(false);
 
   async function refresh() {
+    if (refreshing.current) return;
+    refreshing.current = true;
     setLoading(true);
     setError(null);
-    const [laboRes, autoRes, tickRes, usersRes] = await Promise.all([
-      supabase.from('laboratoires').select('*').eq('est_client', true).order('nom'),
-      supabase.from('automates').select('*').order('nom'),
-      supabase
-        .from('tickets')
-        .select('*, automates(id, nom, modele), technicien:profiles!tickets_technicien_id_fkey(full_name)')
-        .order('created_at', { ascending: false })
-        .limit(1000),
-      edge<{ users: ClientUser[] }>('list-users')
-    ]);
-    if (laboRes.error) setError(laboRes.error.message);
-    else setLaboratoires(laboRes.data as Laboratoire[]);
-    if (autoRes.error) setError(autoRes.error.message);
-    else setAutomates(autoRes.data as Automate[]);
-    if (tickRes.error) setError(tickRes.error.message);
-    else setTickets(tickRes.data as TicketWithAutomate[]);
-    if (usersRes.error) setError(usersRes.error.message);
-    else setUsers((usersRes.data?.users ?? []).map((u) => ({ ...u, banned: !!u.banned })));
-    setLoading(false);
+    try {
+      const [laboRes, autoRes, tickRes, usersRes] = await Promise.all([
+        supabase.from('laboratoires').select('*').eq('est_client', true).order('nom'),
+        supabase.from('automates').select('*').order('nom'),
+        supabase
+          .from('tickets')
+          .select('*, automates(id, nom, modele), technicien:profiles!tickets_technicien_id_fkey(full_name)')
+          .order('created_at', { ascending: false })
+          .limit(1000),
+        edge<{ users: ClientUser[] }>('list-users')
+      ]);
+      if (laboRes.error) setError(laboRes.error.message);
+      else setLaboratoires(laboRes.data as Laboratoire[]);
+      if (autoRes.error) setError(autoRes.error.message);
+      else setAutomates(autoRes.data as Automate[]);
+      if (tickRes.error) setError(tickRes.error.message);
+      else setTickets(tickRes.data as TicketWithAutomate[]);
+      if (usersRes.error) setError(usersRes.error.message);
+      else setUsers((usersRes.data?.users ?? []).map((u) => ({ ...u, banned: !!u.banned })));
+    } finally {
+      setLoading(false);
+      refreshing.current = false;
+    }
   }
 
   useEffect(() => {

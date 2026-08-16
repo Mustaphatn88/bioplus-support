@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { edge } from '../lib/edge';
 import { supabase, type Priorite, type Statut, type TicketWithAutomate } from '../lib/supabaseClient';
@@ -36,28 +36,35 @@ export default function Reclamations() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const refreshing = useRef(false);
 
   async function refresh() {
+    if (refreshing.current) return;
+    refreshing.current = true;
     setLoading(true);
     setError(null);
-    const [tickRes, usersRes] = await Promise.all([
-      supabase
-        .from('tickets')
-        .select(
-          '*, automates(id, nom, modele), laboratoire:laboratoires(id, nom), technicien:profiles!tickets_technicien_id_fkey(full_name)'
-        )
-        .order('created_at', { ascending: false })
-        .limit(200),
-      edge<{ users: Technicien[] }>('list-users')
-    ]);
-    if (tickRes.error) setError(tickRes.error.message);
-    else setTickets(tickRes.data as TicketWithAutomate[]);
-    if (usersRes.error) setError(usersRes.error.message);
-    else
-      setTechniciens(
-        (usersRes.data?.users ?? []).filter((u) => u.role === 'technicien' && !u.banned)
-      );
-    setLoading(false);
+    try {
+      const [tickRes, usersRes] = await Promise.all([
+        supabase
+          .from('tickets')
+          .select(
+            '*, automates(id, nom, modele), laboratoire:laboratoires(id, nom), technicien:profiles!tickets_technicien_id_fkey(full_name)'
+          )
+          .order('created_at', { ascending: false })
+          .limit(200),
+        edge<{ users: Technicien[] }>('list-users')
+      ]);
+      if (tickRes.error) setError(tickRes.error.message);
+      else setTickets(tickRes.data as TicketWithAutomate[]);
+      if (usersRes.error) setError(usersRes.error.message);
+      else
+        setTechniciens(
+          (usersRes.data?.users ?? []).filter((u) => u.role === 'technicien' && !u.banned)
+        );
+    } finally {
+      setLoading(false);
+      refreshing.current = false;
+    }
   }
 
   useEffect(() => {
