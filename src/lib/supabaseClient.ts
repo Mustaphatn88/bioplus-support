@@ -41,6 +41,7 @@ export interface Automate {
   modele: string | null;
   numero_serie: string | null;
   statut: string | null;
+  photo_url: string | null;
   created_at: string;
 }
 

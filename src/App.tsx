@@ -11,6 +11,7 @@ import TicketDetail from './pages/TicketDetail';
 import AdminUsers from './pages/AdminUsers';
 import Reclamations from './pages/Reclamations';
 import Clients from './pages/Clients';
+import ClientDetail from './pages/ClientDetail';
 import Analytics from './pages/Analytics';
 import Automates from './pages/Automates';
 
@@ -35,6 +36,7 @@ export default function App() {
             <Route path="/users" element={<AdminUsers />} />
             <Route path="/reclamations" element={<Reclamations />} />
             <Route path="/clients" element={<Clients />} />
+            <Route path="/client/:id" element={<ClientDetail />} />
             <Route path="/analytics" element={<Analytics />} />
           </Route>
           <Route element={<RoleRoute roles={['responsable', 'admin']} />}>
