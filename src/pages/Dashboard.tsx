@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { edge } from '../lib/edge';
 import { useAuth } from '../contexts/AuthContext';
+import { useGalacticos } from '../hooks/useGalacticos';
 import Logo from '../components/Logo';
 import {
   supabase,
@@ -12,6 +13,7 @@ import {
   type TicketWithAutomate
 } from '../lib/supabaseClient';
 import Spinner from '../components/Spinner';
+import CommandCenter from './CommandCenter';
 
 const STATUT_STYLES: Record<Statut, string> = {
   ouvert: 'bg-blue-100 text-blue-800',
@@ -26,6 +28,11 @@ const PRIORITE_STYLES: Record<Priorite, string> = {
 };
 
 export default function Dashboard() {
+  const isGalacticos = useGalacticos();
+  return isGalacticos ? <CommandCenter /> : <ClassicDashboard />;
+}
+
+function ClassicDashboard() {
   const { profile, user, signOut } = useAuth();
   const navigate = useNavigate();
 

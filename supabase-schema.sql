@@ -38,7 +38,19 @@ create table public.profiles (
   laboratoire_ville    text,
   laboratoire_adresse  text,
   laboratoire_telephone text,
+  -- préférences utilisateur (JSONB) : ex. {"ui_mode":"classic"|"galacticos"}
+  preferences    jsonb not null default '{"ui_mode":"classic"}'::jsonb,
   created_at     timestamptz not null default now()
+);
+
+-- Paramètres globaux applicatifs (kill switch runtime) : ex. key='force_ui_mode'
+--   value=null            -> aucun forçage (chaque utilisateur suit sa préférence)
+--   value={"mode":"classic"}     -> TOUT le monde revient en mode classique
+--   value={"mode":"galacticos"}  -> TOUT le monde passe en mode galacticos
+create table public.app_settings (
+  key        text primary key,
+  value      jsonb not null default 'null'::jsonb,
+  updated_at timestamptz not null default now()
 );
 
 create table public.automates (
@@ -163,6 +175,14 @@ alter table public.laboratoires enable row level security;
 alter table public.profiles      enable row level security;
 alter table public.automates     enable row level security;
 alter table public.tickets       enable row level security;
+alter table public.app_settings  enable row level security;
+
+-- app_settings : lecture seule pour tout utilisateur authentifié
+-- (l'écriture se fait via SQL par l'administrateur — pas d'API exposée)
+create policy "app_settings_select"
+  on public.app_settings for select
+  to authenticated
+  using (true);
 
 -- laboratoires : lecture pour tout utilisateur authentifié
 create policy "laboratoires_select_authenticated"

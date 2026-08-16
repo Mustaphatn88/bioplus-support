@@ -11,6 +11,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export type Role = 'admin' | 'responsable' | 'technicien';
 
+export type UiMode = 'classic' | 'galacticos';
+
 export interface Laboratoire {
   id: string;
   nom: string;
@@ -31,6 +33,7 @@ export interface Profile {
   laboratoire_ville: string | null;
   laboratoire_adresse: string | null;
   laboratoire_telephone: string | null;
+  preferences?: { ui_mode?: UiMode } | null;
   created_at: string;
 }
 
