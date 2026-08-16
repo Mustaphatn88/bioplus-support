@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { edge } from '../lib/edge';
 import { useAuth } from '../contexts/AuthContext';
-import { useGalacticos } from '../hooks/useGalacticos';
+import { useGalacticos, setUiMode } from '../hooks/useGalacticos';
 import Logo from '../components/Logo';
 import {
   supabase,
@@ -46,6 +46,7 @@ function ClassicDashboard() {
   const [openCount, setOpenCount] = useState<number | null>(null);
   const [alarmPendingCount, setAlarmPendingCount] = useState<number | null>(null);
   const [live, setLive] = useState(0);
+  const [modeError, setModeError] = useState<string | null>(null);
 
   useEffect(() => {
     const channel = supabase
@@ -157,6 +158,16 @@ function ClassicDashboard() {
     navigate('/login', { replace: true });
   }
 
+  async function handleGoGalacticos() {
+    setModeError(null);
+    try {
+      await setUiMode('galacticos');
+      window.location.reload();
+    } catch (e) {
+      setModeError(e instanceof Error ? e.message : 'Erreur inconnue');
+    }
+  }
+
   function renderHeader() {
     return (
       <header className="mb-4 overflow-hidden rounded-2xl bg-gradient-to-r from-teal-700 to-emerald-700 p-4 text-white shadow-lg shadow-teal-900/20">
@@ -172,12 +183,21 @@ function ClassicDashboard() {
               </p>
             </div>
           </div>
-          <button
-            onClick={handleLogout}
-            className="shrink-0 rounded-lg bg-white/15 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/25"
-          >
-            Déconnexion
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              onClick={handleGoGalacticos}
+              title="Basculer vers l'interface GalacticOS (Command Center, Galaxy View…)"
+              className="shrink-0 rounded-lg border border-white/40 bg-transparent px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/15"
+            >
+              ✦ Mode GalacticOS
+            </button>
+            <button
+              onClick={handleLogout}
+              className="shrink-0 rounded-lg bg-white/15 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/25"
+            >
+              Déconnexion
+            </button>
+          </div>
         </div>
       </header>
     );
@@ -188,6 +208,10 @@ function ClassicDashboard() {
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4 lg:max-w-6xl lg:p-8">
       {renderHeader()}
+
+      {modeError && (
+        <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{modeError}</p>
+      )}
 
       {profile?.statut === 'en_attente' && (
         <div className="card mb-4 border-amber-200 bg-amber-50">
