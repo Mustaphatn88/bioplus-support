@@ -297,11 +297,7 @@ export default function AdminUsers() {
                 <option value="responsable">Responsable (biologiste)</option>
                 {callerIsSuper && <option value="admin">Administrateur (BioPlus)</option>}
               </select>
-              {u.role === 'admin' ? (
-                <p className="input w-full text-sm text-slate-500">
-                  BioPlus · Service Technique (sans laboratoire)
-                </p>
-              ) : (
+              {u.role === 'responsable' ? (
                 <select
                   value={u.laboratoire_id ?? ''}
                   disabled={busy}
@@ -315,6 +311,10 @@ export default function AdminUsers() {
                     </option>
                   ))}
                 </select>
+              ) : (
+                <p className="input w-full text-sm text-slate-500">
+                  BioPlus · Service Technique (sans laboratoire)
+                </p>
               )}
               <div className="flex flex-wrap gap-2">
                 <button
@@ -372,47 +372,56 @@ export default function AdminUsers() {
                 {approving.laboratoire_ville ? ` (${approving.laboratoire_ville})` : ''}
               </p>
             )}
-            <label className="flex items-center gap-2 text-sm text-slate-700">
-              <input
-                type="checkbox"
-                checked={approveCreateLabo}
-                onChange={(e) => setApproveCreateLabo(e.target.checked)}
-                className="h-4 w-4 accent-teal-700"
-              />
-              Créer un nouveau laboratoire avec les informations fournies
-            </label>
-            {approveCreateLabo ? (
-              <p className="text-xs text-slate-500">
-                Le laboratoire « {approving.laboratoire_nom ?? 'à nommer'} » sera créé et ce
-                compte y sera rattaché.
-              </p>
-            ) : (
-              <select
-                value={approveLabo}
-                onChange={(e) => setApproveLabo(e.target.value)}
-                className="input w-full"
-              >
-                <option value="">— Choisir un laboratoire existant —</option>
-                {laboratoires.map((l) => (
-                  <option key={l.id} value={l.id}>
-                    {l.nom}
-                  </option>
-                ))}
-              </select>
-            )}
             <select
               value={approveRole}
               onChange={(e) => setApproveRole(e.target.value as Role)}
               className="input w-full"
             >
-              <option value="responsable">Responsable (biologiste)</option>
-              <option value="technicien">Technicien</option>
+              <option value="responsable">Responsable (biologiste — client)</option>
+              <option value="technicien">Technicien (BioPlus)</option>
               {callerIsSuper && <option value="admin">Administrateur (BioPlus)</option>}
             </select>
+            {approveRole === 'responsable' && (
+              <>
+                <label className="flex items-center gap-2 text-sm text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={approveCreateLabo}
+                    onChange={(e) => setApproveCreateLabo(e.target.checked)}
+                    className="h-4 w-4 accent-teal-700"
+                  />
+                  Créer un nouveau laboratoire avec les informations fournies
+                </label>
+                {approveCreateLabo ? (
+                  <p className="text-xs text-slate-500">
+                    Le laboratoire « {approving.laboratoire_nom ?? 'à nommer'} » sera créé et ce
+                    compte y sera rattaché.
+                  </p>
+                ) : (
+                  <select
+                    value={approveLabo}
+                    onChange={(e) => setApproveLabo(e.target.value)}
+                    className="input w-full"
+                  >
+                    <option value="">— Choisir un laboratoire existant —</option>
+                    {laboratoires.map((l) => (
+                      <option key={l.id} value={l.id}>
+                        {l.nom}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </>
+            )}
+            {approveRole !== 'responsable' && (
+              <p className="rounded-lg bg-slate-100 px-3 py-2 text-xs text-slate-500">
+                Technicien et administrateur = personnel BioPlus : pas de laboratoire client.
+              </p>
+            )}
             <div className="flex gap-2">
               <button
-                onClick={() => approveUser(approving, approveLabo, approveRole)}
-                disabled={busy || (!approveCreateLabo && !approveLabo)}
+                onClick={() => approveUser(approving, approveRole === 'responsable' ? approveLabo : '', approveRole)}
+                disabled={busy || (approveRole === 'responsable' && !approveCreateLabo && !approveLabo)}
                 className="btn-primary flex-1"
               >
                 {busy ? 'Validation...' : 'Valider'}
@@ -454,26 +463,39 @@ export default function AdminUsers() {
               className="input w-full"
             />
             <select
-              value={form.laboratoire_id}
-              onChange={(e) => setForm({ ...form, laboratoire_id: e.target.value })}
-              className="input w-full"
-            >
-              <option value="">— Aucun laboratoire —</option>
-              {laboratoires.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.nom}
-                </option>
-              ))}
-            </select>
-            <select
               value={form.role}
-              onChange={(e) => setForm({ ...form, role: e.target.value as Role })}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  role: e.target.value as Role,
+                  laboratoire_id: e.target.value === 'responsable' ? form.laboratoire_id : ''
+                })
+              }
               className="input w-full"
             >
-              <option value="technicien">Technicien</option>
-              <option value="responsable">Responsable (biologiste)</option>
+              <option value="technicien">Technicien (BioPlus)</option>
+              <option value="responsable">Responsable (biologiste — client)</option>
               {callerIsSuper && <option value="admin">Administrateur (BioPlus)</option>}
             </select>
+            {form.role === 'responsable' && (
+              <select
+                value={form.laboratoire_id}
+                onChange={(e) => setForm({ ...form, laboratoire_id: e.target.value })}
+                className="input w-full"
+              >
+                <option value="">— Choisir le laboratoire du client —</option>
+                {laboratoires.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.nom}
+                  </option>
+                ))}
+              </select>
+            )}
+            {form.role !== 'responsable' && (
+              <p className="rounded-lg bg-slate-100 px-3 py-2 text-xs text-slate-500">
+                Technicien et administrateur = personnel BioPlus : pas de laboratoire client.
+              </p>
+            )}
             {!callerIsSuper && (
               <p className="rounded-lg bg-slate-100 px-3 py-2 text-xs text-slate-500">
                 La création de comptes admin est réservée au super administrateur.
@@ -486,7 +508,11 @@ export default function AdminUsers() {
               </p>
             )}
             <div className="flex gap-2">
-              <button type="submit" disabled={busy} className="btn-primary flex-1">
+              <button
+                type="submit"
+                disabled={busy || (form.role === 'responsable' && !form.laboratoire_id)}
+                className="btn-primary flex-1"
+              >
                 {busy ? 'Création...' : 'Créer le compte'}
               </button>
               <button

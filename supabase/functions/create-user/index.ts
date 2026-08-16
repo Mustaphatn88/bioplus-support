@@ -49,11 +49,15 @@ Deno.serve(async (req) => {
     );
   }
 
-  if (laboratoire_id) {
+  // Seul un responsable (client) est rattaché à un laboratoire :
+  // technicien et admin sont du personnel BioPlus, jamais clients.
+  const finalLabo = role === 'responsable' ? (laboratoire_id ?? null) : null;
+
+  if (finalLabo) {
     const { data: labo } = await admin
       .from('laboratoires')
       .select('id')
-      .eq('id', laboratoire_id)
+      .eq('id', finalLabo)
       .maybeSingle();
     if (!labo) return json({ error: 'Laboratoire introuvable.' }, 400);
   }
@@ -62,14 +66,14 @@ Deno.serve(async (req) => {
     email,
     password,
     email_confirm: true,
-    user_metadata: { laboratoire_id, role, full_name }
+    user_metadata: { laboratoire_id: finalLabo, role, full_name }
   });
   if (error) return json({ error: error.message }, 400);
 
   const { error: profileErr } = await admin
     .from('profiles')
     .update({
-      laboratoire_id: laboratoire_id ?? null,
+      laboratoire_id: finalLabo,
       role,
       full_name: full_name ?? null
     })

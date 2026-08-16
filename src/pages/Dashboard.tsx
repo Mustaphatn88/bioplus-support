@@ -174,7 +174,11 @@ export default function Dashboard() {
       {profile?.role === 'admin' && (
         <div className="space-y-4">
           <div className="card border-dashed">
-            <h2 className="text-base font-bold text-slate-900">Super-administration BioPlus</h2>
+            <h2 className="text-base font-bold text-slate-900">
+              {profile?.is_super_admin
+                ? 'Super-administration BioPlus'
+                : 'Administration BioPlus'}
+            </h2>
             <p className="mt-1 text-sm text-slate-500">
               Gestion multi-laboratoires, comptes utilisateurs et parc d'automates.
             </p>

@@ -90,8 +90,13 @@ Deno.serve(async (req) => {
         return json({ error: 'Ce compte est déjà validé.' }, 400);
       }
 
-      let laboId = params.laboratoire_id ?? null;
-      if (!laboId) {
+      const role = params.role ?? 'responsable';
+      if (!ROLES.includes(role)) return json({ error: 'Rôle invalide.' }, 400);
+
+      // Seul un responsable (client) est rattaché à un laboratoire :
+      // technicien et admin sont du personnel BioPlus, jamais clients.
+      let laboId = role === 'responsable' ? (params.laboratoire_id ?? null) : null;
+      if (role === 'responsable' && !laboId) {
         const nom =
           target.laboratoire_nom ??
           params.laboratoire_nom ??
@@ -109,9 +114,6 @@ Deno.serve(async (req) => {
         if (laboErr) return json({ error: laboErr.message }, 500);
         laboId = labo.id;
       }
-
-      const role = params.role ?? 'responsable';
-      if (!ROLES.includes(role)) return json({ error: 'Rôle invalide.' }, 400);
 
       const { error: pErr } = await admin
         .from('profiles')
@@ -137,19 +139,27 @@ Deno.serve(async (req) => {
 
     case 'role': {
       if (!ROLES.includes(params.role)) return json({ error: 'Rôle invalide.' }, 400);
+      // technicien / admin : personnel BioPlus, jamais de laboratoire client.
+      const newLabo = params.role === 'responsable' ? (params.laboratoire_id ?? null) : null;
       const { error: pErr } = await admin
         .from('profiles')
-        .update({ role: params.role })
+        .update({ role: params.role, laboratoire_id: newLabo })
         .eq('user_id', user_id);
       if (pErr) return json({ error: pErr.message }, 500);
       const { error: uErr } = await admin.auth.admin.updateUserById(user_id, {
-        user_metadata: { role: params.role }
+        user_metadata: { role: params.role, laboratoire_id: newLabo }
       });
       if (uErr) return json({ error: uErr.message }, 500);
       return json({ ok: true });
     }
 
     case 'laboratoire': {
+      if (targetProfile.role !== 'responsable') {
+        return json(
+          { error: "Seul un compte responsable (client) peut être rattaché à un laboratoire." },
+          400
+        );
+      }
       const { error: pErr } = await admin
         .from('profiles')
         .update({ laboratoire_id: params.laboratoire_id ?? null })
