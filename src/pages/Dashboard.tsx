@@ -155,7 +155,7 @@ export default function Dashboard() {
   if (loading) return <Spinner label="Chargement du tableau de bord..." />;
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4">
+    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4 lg:max-w-6xl lg:p-8">
       {renderHeader()}
 
       {profile?.statut === 'en_attente' && (
@@ -183,7 +183,7 @@ export default function Dashboard() {
               Gestion multi-laboratoires, comptes utilisateurs et parc d'automates.
             </p>
           </div>
-          <div className="space-y-2">
+          <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
                         <Link to="/reclamations" className="card block transition hover:border-teal-600">
               <p className="text-sm font-semibold text-slate-900">
                 Réclamations des laboratoires
@@ -263,7 +263,7 @@ export default function Dashboard() {
                 </p>
               </div>
             ) : (
-              <ul className="space-y-2">
+              <ul className="grid grid-cols-1 gap-2 lg:grid-cols-2">
                 {assigned.map((t) => (
                   <li key={t.id} className="card">
                     <div className="flex items-center justify-between gap-2">
@@ -365,7 +365,7 @@ export default function Dashboard() {
               <p className="text-sm text-slate-500">Aucun ticket pour le moment.</p>
             </div>
           ) : (
-            <ul className="space-y-2">
+            <ul className="grid grid-cols-1 gap-2 lg:grid-cols-2">
               {tickets.map((t) => (
                 <li key={t.id}>
                   <Link to={`/ticket/${t.id}`} className="card block transition hover:border-teal-600">

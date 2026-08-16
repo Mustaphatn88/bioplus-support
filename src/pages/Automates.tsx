@@ -195,7 +195,7 @@ export default function Automates() {
   }
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4">
+    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4 lg:max-w-6xl lg:p-8">
       <header className="mb-4 flex items-center justify-between">
         <div>
           <h1 className="text-lg font-bold text-slate-900 page-title">Parc d'automates</h1>
@@ -235,17 +235,17 @@ export default function Automates() {
                   · {g.automates.length} machine(s)
                 </span>
               </h3>
-              <ul className="space-y-2">{g.automates.map(renderAutomateCard)}</ul>
+              <ul className="grid grid-cols-1 gap-2 lg:grid-cols-2">{g.automates.map(renderAutomateCard)}</ul>
             </section>
           ))}
         </div>
       ) : (
-        <ul className="space-y-2">{automates.map(renderAutomateCard)}</ul>
+        <ul className="grid grid-cols-1 gap-2 lg:grid-cols-2">{automates.map(renderAutomateCard)}</ul>
       )}
 
       {editing && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center">
-          <form onSubmit={handleSubmit} className="card w-full max-w-md space-y-3">
+          <form onSubmit={handleSubmit} className="card w-full max-w-md space-y-3 lg:max-w-xl lg:max-w-xl">
             <h3 className="text-base font-bold text-slate-900">
               {editing === 'new' ? 'Nouvel automate' : `Modifier : ${editing.nom}`}
             </h3>

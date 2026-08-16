@@ -114,7 +114,7 @@ export default function Analytics() {
   if (loading && tickets.length === 0) return <Spinner label="Calcul des indicateurs..." />;
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4">
+    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4 lg:max-w-6xl lg:p-8">
       <header className="mb-4 flex items-center justify-between">
         <div>
           <h1 className="text-lg font-bold text-slate-900 page-title">Analyse & efficacité</h1>
@@ -132,7 +132,7 @@ export default function Analytics() {
 
       {error && <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
-      <section className="mb-4 grid grid-cols-2 gap-2">
+      <section className="mb-4 grid grid-cols-2 gap-2 lg:grid-cols-4">
         <div className="card text-center">
           <p className="text-2xl font-bold text-slate-900">{total}</p>
           <p className="text-xs text-slate-500">Réclamations (tous clients)</p>
@@ -151,6 +151,7 @@ export default function Analytics() {
         </div>
       </section>
 
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
       <section className="card mb-4 space-y-2">
         <h2 className="text-sm font-bold text-slate-900">Répartition par statut</h2>
         <Bar label="Ouvertes" value={statutCount(tickets, 'ouvert')} max={total} color="bg-blue-500" />
@@ -209,13 +210,14 @@ export default function Analytics() {
           {activity.reduce((s, n) => s + n, 0)} réclamation(s) sur 30 jours
         </p>
       </section>
+      </div>
 
       <section className="card mb-4">
         <h2 className="mb-2 text-sm font-bold text-slate-900">Efficacité des techniciens</h2>
         {techs.length === 0 ? (
           <p className="text-xs text-slate-500">Aucun technicien BioPlus.</p>
         ) : (
-          <ul className="space-y-3">
+          <ul className="grid grid-cols-1 gap-3 lg:grid-cols-2">
             {techs.map((t) => (
               <li key={t.id}>
                 <div className="flex items-center justify-between text-xs">
@@ -242,6 +244,7 @@ export default function Analytics() {
         )}
       </section>
 
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
       <section className="card mb-4">
         <h2 className="mb-2 text-sm font-bold text-slate-900">Machines les plus sollicitées</h2>
         {machines.length === 0 ? (
@@ -275,6 +278,7 @@ export default function Analytics() {
             ))}
         </ul>
       </section>
+      </div>
 
       <p className="text-center text-xs text-slate-400">
         Données actualisées toutes les minutes · Téléchargement CSV compatible Excel

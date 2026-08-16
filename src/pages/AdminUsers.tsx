@@ -176,7 +176,7 @@ export default function AdminUsers() {
   if (loading && !users) return <Spinner label="Chargement des utilisateurs..." />;
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4">
+    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4 lg:max-w-6xl lg:p-8">
       <header className="mb-4 flex items-center justify-between">
         <div>
           <h1 className="text-lg font-bold text-slate-900 page-title">Gestion des utilisateurs</h1>
@@ -216,7 +216,7 @@ export default function AdminUsers() {
           <h3 className="mb-2 text-sm font-bold text-amber-800">
             Demandes d'inscription en attente ({pendingUsers.length})
           </h3>
-          <ul className="space-y-2">
+          <ul className="grid grid-cols-1 gap-2 lg:grid-cols-2">
             {pendingUsers.map((u) => (
               <li key={u.id} className="card border-amber-200 bg-amber-50/50">
                 <div className="flex items-center justify-between gap-2">
@@ -265,7 +265,7 @@ export default function AdminUsers() {
         </section>
       )}
 
-      <ul className="space-y-2">
+      <ul className="grid grid-cols-1 gap-2 lg:grid-cols-2">
         {(users ?? []).map((u) => (
           <li key={u.id} className="card">
             <div className="flex items-center justify-between gap-2">
@@ -362,7 +362,7 @@ export default function AdminUsers() {
 
       {approving && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center">
-          <div className="card w-full max-w-md space-y-3">
+          <div className="card w-full max-w-md space-y-3 lg:max-w-xl">
             <h3 className="text-base font-bold text-slate-900">
               Valider {approving.full_name ?? approving.email}
             </h3>
@@ -436,7 +436,7 @@ export default function AdminUsers() {
 
       {showCreate && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center">
-          <form onSubmit={handleCreate} className="card w-full max-w-md space-y-3">
+          <form onSubmit={handleCreate} className="card w-full max-w-md space-y-3 lg:max-w-xl">
             <h3 className="text-base font-bold text-slate-900">Nouveau compte</h3>
             <input
               type="email"

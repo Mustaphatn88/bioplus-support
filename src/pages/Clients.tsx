@@ -242,7 +242,7 @@ export default function Clients() {
     return <Spinner label="Chargement du portefeuille clients..." />;
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4">
+    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4 lg:max-w-6xl lg:p-8">
       <header className="mb-4 overflow-hidden rounded-2xl bg-gradient-to-r from-teal-700 to-emerald-700 p-4 text-white shadow-lg shadow-teal-900/20">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
@@ -284,7 +284,7 @@ export default function Clients() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="card">
           <p className="mb-3 text-[11px] font-bold uppercase tracking-wide text-slate-400">
             Par statut
@@ -356,7 +356,7 @@ export default function Clients() {
           <p className="text-sm text-slate-500">Aucun client ne correspond à « {search} ».</p>
         </div>
       ) : (
-        <ul className="space-y-3">{filtres.map((s, i) => clientCard(s, i))}</ul>
+        <ul className="grid grid-cols-1 gap-3 lg:grid-cols-2">{filtres.map((s, i) => clientCard(s, i))}</ul>
       )}
 
       {topAutos.length > 0 && (

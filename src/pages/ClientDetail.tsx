@@ -199,7 +199,7 @@ export default function ClientDetail() {
 
   if (!labo)
     return (
-      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4">
+      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4 lg:max-w-6xl lg:p-8">
         <p className="card text-sm text-red-700">{error ?? 'Client introuvable.'}</p>
         <Link to="/clients" className="btn-outline mt-3 w-full">
           Retour au portefeuille
@@ -208,7 +208,7 @@ export default function ClientDetail() {
     );
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4">
+    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4 lg:max-w-6xl lg:p-8">
       <header className="mb-4 overflow-hidden rounded-2xl bg-gradient-to-r from-teal-700 via-emerald-700 to-green-700 p-4 text-white shadow-lg shadow-teal-900/20">
         <Link to="/clients" className="text-xs font-semibold text-teal-100 hover:underline">
           ← Portefeuille clients
@@ -280,6 +280,7 @@ export default function ClientDetail() {
         </div>
       </div>
 
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
       <div className="card mb-3">
         <p className="mb-3 text-[11px] font-bold uppercase tracking-wide text-slate-400">
           Répartition par statut
@@ -330,6 +331,7 @@ export default function ClientDetail() {
           })}
         </ul>
       </div>
+      </div>
 
       <div className="card mb-3">
         <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-slate-400">
@@ -340,7 +342,7 @@ export default function ClientDetail() {
             Aucune machine enregistrée pour ce client.
           </p>
         ) : (
-          <ul className="space-y-2">
+          <ul className="grid grid-cols-1 gap-2 lg:grid-cols-2">
             {automates.map((a) => {
               const nb = tickets.filter((t) => t.automate_id === a.id).length;
               return (
@@ -428,7 +430,7 @@ export default function ClientDetail() {
             Aucune réclamation pour ce client.
           </p>
         ) : (
-          <ul className="space-y-2">
+          <ul className="grid grid-cols-1 gap-2 lg:grid-cols-2">
             {tickets.map((t) => (
               <li key={t.id} className="rounded-xl border border-slate-100 p-2.5">
                 <div className="flex items-center justify-between gap-2">

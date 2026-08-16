@@ -171,7 +171,7 @@ export default function Reclamations() {
   }
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4">
+    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4 lg:max-w-6xl lg:p-8">
       <header className="mb-4 flex items-center justify-between">
         <div>
           <h1 className="text-lg font-bold text-slate-900 page-title">Réclamations</h1>
@@ -238,7 +238,7 @@ export default function Reclamations() {
           <h2 className="mb-2 text-sm font-bold text-red-700">
             À dispatcher ({aDispatcher.length})
           </h2>
-          <ul className="space-y-2">{aDispatcher.map((t) => renderTicket(t, true))}</ul>
+          <ul className="grid grid-cols-1 gap-2 lg:grid-cols-2">{aDispatcher.map((t) => renderTicket(t, true))}</ul>
         </section>
       )}
 
@@ -251,7 +251,7 @@ export default function Reclamations() {
             <p className="text-sm text-slate-500">Aucune réclamation suivie pour le moment.</p>
           </div>
         ) : (
-          <ul className="space-y-2">{suivies.map((t) => renderTicket(t, true))}</ul>
+          <ul className="grid grid-cols-1 gap-2 lg:grid-cols-2">{suivies.map((t) => renderTicket(t, true))}</ul>
         )}
       </section>
     </div>

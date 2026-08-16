@@ -200,7 +200,7 @@ export default function TicketCreation() {
 
   if (blocked) {
     return (
-      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4">
+      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4 lg:max-w-6xl lg:p-8">
         <header className="mb-4">
           <h1 className="text-lg font-bold text-slate-900 page-title">Nouveau ticket</h1>
         </header>
@@ -212,7 +212,7 @@ export default function TicketCreation() {
   }
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4">
+    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4 lg:max-w-6xl lg:p-8">
       <header className="mb-4">
         <h1 className="text-lg font-bold text-slate-900 page-title">Nouveau ticket</h1>
         <p className="text-xs text-slate-500">

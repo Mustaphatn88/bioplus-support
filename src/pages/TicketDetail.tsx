@@ -133,7 +133,7 @@ export default function TicketDetail() {
 
   if (!ticket) {
     return (
-      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4">
+      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4 lg:max-w-6xl lg:p-8">
         <div className="card border-red-200 bg-red-50">
           <p className="text-sm font-medium text-red-700">{error}</p>
         </div>
@@ -145,7 +145,7 @@ export default function TicketDetail() {
   }
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4">
+    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4 lg:max-w-6xl lg:p-8">
       <header className="mb-4 flex items-center justify-between">
         <div>
           <h1 className="text-lg font-bold text-slate-900 page-title">Ticket</h1>
@@ -157,6 +157,7 @@ export default function TicketDetail() {
       </header>
 
       <div className="space-y-4">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="card">
           <div className="flex items-center justify-between gap-2">
             <h2 className="text-xl font-bold text-slate-900">
@@ -247,6 +248,7 @@ export default function TicketDetail() {
           </div>
           {saved && <p className="mt-2 text-xs font-medium text-green-700">Statut enregistré.</p>}
           {error && <p className="mt-2 text-xs font-medium text-red-700">{error}</p>}
+        </div>
         </div>
 
         <div className="card">
