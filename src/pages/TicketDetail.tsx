@@ -34,6 +34,7 @@ function ClassicTicketDetail() {
   const { user } = useAuth();
   const [ticket, setTicket] = useState<TicketWithAutomate | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
   const [statut, setStatut] = useState<Statut>('ouvert');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -64,10 +65,11 @@ function ClassicTicketDetail() {
         setTicket(t);
         setStatut(t.statut);
         if (t.photo_path) {
-          const { data: signed } = await supabase.storage
+          const { data: signed, error: signErr } = await supabase.storage
             .from('photos')
             .createSignedUrl(t.photo_path, 3600);
           if (signed) setPhotoUrl(signed.signedUrl);
+          else setPhotoError(signErr?.message ?? 'Objet photo introuvable');
         }
         setLoading(false);
       });
@@ -215,16 +217,25 @@ function ClassicTicketDetail() {
           </p>
         </div>
 
-        {photoUrl && (
+        {photoUrl ? (
           <div className="card">
             <h3 className="mb-2 text-sm font-semibold text-slate-900">Photo</h3>
             <img
               src={photoUrl}
               alt="Photo du ticket"
+              onError={() => {
+                setPhotoUrl(null);
+                setPhotoError('La photo est introuvable sur le serveur.');
+              }}
               className="w-full rounded-lg object-cover"
             />
           </div>
-        )}
+        ) : photoError ? (
+          <div className="card">
+            <h3 className="mb-1 text-sm font-semibold text-slate-900">Photo</h3>
+            <p className="text-xs text-amber-700">Photo indisponible : {photoError}</p>
+          </div>
+        ) : null}
 
         <div className="card">
           <label htmlFor="statut" className="label">

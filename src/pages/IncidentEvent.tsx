@@ -23,6 +23,7 @@ export default function IncidentEvent() {
 
   const [ticket, setTicket] = useState<TicketWithAutomate | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
   const [statut, setStatut] = useState<Statut>('ouvert');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -53,10 +54,11 @@ export default function IncidentEvent() {
         setTicket(t);
         setStatut(t.statut);
         if (t.photo_path) {
-          const { data: signed } = await supabase.storage
+          const { data: signed, error: signErr } = await supabase.storage
             .from('photos')
             .createSignedUrl(t.photo_path, 3600);
           if (signed) setPhotoUrl(signed.signedUrl);
+          else setPhotoError(signErr?.message ?? 'Objet photo introuvable');
         }
         setLoading(false);
       });
@@ -254,15 +256,31 @@ export default function IncidentEvent() {
           </dl>
         </section>
 
-        {photoUrl && (
+        {photoUrl ? (
           <section className="rounded-xl border border-cyan-400/10 bg-[#0B1220]/80 p-4 shadow-lg shadow-black/40">
             <h2 className="mb-3 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.25em] text-cyan-400/70">
               <span className="h-1.5 w-1.5 rounded-full bg-[#00E5FF]" />
               Preuve visuelle
             </h2>
-            <img src={photoUrl} alt="Photo du ticket" className="max-h-72 w-full rounded-lg object-cover" />
+            <img
+              src={photoUrl}
+              alt="Photo du ticket"
+              onError={() => {
+                setPhotoUrl(null);
+                setPhotoError('La photo est introuvable sur le serveur.');
+              }}
+              className="max-h-72 w-full rounded-lg object-cover"
+            />
           </section>
-        )}
+        ) : photoError ? (
+          <section className="rounded-xl border border-[#FFB703]/25 bg-[#0B1220]/80 p-4 shadow-lg shadow-black/40">
+            <h2 className="mb-1 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.25em] text-[#FFB703]">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#FFB703]" />
+              Preuve visuelle
+            </h2>
+            <p className="text-xs text-slate-400">Photo indisponible : {photoError}</p>
+          </section>
+        ) : null}
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {/* TIMELINE */}
