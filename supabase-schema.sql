@@ -254,13 +254,14 @@ create policy "automates_delete_manager"
     public.current_role() in ('responsable', 'admin')
   );
 
--- tickets : lecture pour les membres du laboratoire, l'admin (dispatch) et le technicien assigné
+-- tickets : lecture pour les membres du laboratoire, TOUS les techniciens BioPlus
+-- (ils doivent voir les détails des pannes avant d'intervenir) et l'admin
 create policy "tickets_select_member"
   on public.tickets for select
   to authenticated
   using (
     public.is_member_of(laboratoire_id)
-    or public.current_role() = 'admin'
+    or public.current_role() in ('admin', 'technicien')
     or technicien_id = auth.uid()
   );
 
@@ -313,7 +314,7 @@ create table public.interventions (
 alter table public.interventions enable row level security;
 create index if not exists interventions_ticket_idx on public.interventions (ticket_id);
 
--- Accès : mêmes droits que le ticket (membre du laboratoire, admin, technicien assigné).
+-- Accès : mêmes droits que le ticket (membre du laboratoire, TOUS les techniciens BioPlus, admin).
 create policy "interventions_select"
   on public.interventions for select
   to authenticated
@@ -322,7 +323,7 @@ create policy "interventions_select"
     where t.id = ticket_id
       and (
         public.is_member_of(t.laboratoire_id)
-        or public.current_role() = 'admin'
+        or public.current_role() in ('admin', 'technicien')
         or t.technicien_id = auth.uid()
       )
   ));
