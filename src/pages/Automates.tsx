@@ -63,6 +63,23 @@ export default function Automates() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const isAdmin = profile?.role === 'admin';
+
+  const groupes = useMemo(() => {
+    if (!isAdmin) return [];
+    const parLabo = new Map<string, Automate[]>();
+    for (const a of automates) {
+      const liste = parLabo.get(a.laboratoire_id) ?? [];
+      liste.push(a);
+      parLabo.set(a.laboratoire_id, liste);
+    }
+    return [...parLabo.entries()].map(([laboId, liste]) => ({
+      laboId,
+      laboNom: laboratoires.find((l) => l.id === laboId)?.nom ?? 'Laboratoire inconnu',
+      automates: liste
+    }));
+  }, [isAdmin, automates, laboratoires]);
+
   function openForm(a: Automate | 'new') {
     setEditing(a);
     setError(null);
@@ -138,23 +155,6 @@ export default function Automates() {
   }
 
   if (loading) return <Spinner label="Chargement des automates..." />;
-
-  const isAdmin = profile?.role === 'admin';
-
-  const groupes = useMemo(() => {
-    if (!isAdmin) return [];
-    const parLabo = new Map<string, Automate[]>();
-    for (const a of automates) {
-      const liste = parLabo.get(a.laboratoire_id) ?? [];
-      liste.push(a);
-      parLabo.set(a.laboratoire_id, liste);
-    }
-    return [...parLabo.entries()].map(([laboId, liste]) => ({
-      laboId,
-      laboNom: laboratoires.find((l) => l.id === laboId)?.nom ?? 'Laboratoire inconnu',
-      automates: liste
-    }));
-  }, [isAdmin, automates, laboratoires]);
 
   function renderAutomateCard(a: Automate) {
     return (
@@ -245,7 +245,7 @@ export default function Automates() {
 
       {editing && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center">
-          <form onSubmit={handleSubmit} className="card w-full max-w-md space-y-3 lg:max-w-xl lg:max-w-xl">
+          <form onSubmit={handleSubmit} className="card w-full max-w-md space-y-3 lg:max-w-xl">
             <h3 className="text-base font-bold text-slate-900">
               {editing === 'new' ? 'Nouvel automate' : `Modifier : ${editing.nom}`}
             </h3>

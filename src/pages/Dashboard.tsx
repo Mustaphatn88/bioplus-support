@@ -320,7 +320,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {profile?.role !== 'admin' && profile?.laboratoire_id && (
+      {profile?.role !== 'admin' && (
         <>
           {profile.role === 'responsable' && (
             <>
