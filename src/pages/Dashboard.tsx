@@ -322,7 +322,7 @@ export default function Dashboard() {
 
       {profile?.role !== 'admin' && (
         <>
-          {profile.role === 'responsable' && (
+          {profile?.role === 'responsable' && (
             <>
               <section className="mb-4 grid grid-cols-3 gap-2">
                 <div className="card text-center">
