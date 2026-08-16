@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   supabase,
   type Intervention,
@@ -23,6 +23,7 @@ const PRIORITE_STYLES: Record<'normal' | 'important' | 'critique', string> = {
 
 export default function TicketDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [ticket, setTicket] = useState<TicketWithAutomate | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
@@ -116,6 +117,16 @@ export default function TicketDetail() {
       setSaved(true);
       setTicket({ ...ticket, statut, updated_at: now });
     }
+  }
+
+  async function removeTicket() {
+    if (!ticket) return;
+    if (!window.confirm('Supprimer définitivement cette réclamation ?')) return;
+    if (!window.confirm('Confirmer la suppression IRREVERSIBLE de cette réclamation ?')) return;
+    setError(null);
+    const { error: delErr } = await supabase.from('tickets').delete().eq('id', ticket.id);
+    if (delErr) setError(delErr.message);
+    else navigate('/reclamations', { replace: true });
   }
 
   if (loading) return <Spinner label="Chargement du ticket..." />;
@@ -278,6 +289,15 @@ export default function TicketDetail() {
           </form>
         </div>
 
+        {user?.role === 'admin' && (
+          <button
+            type="button"
+            onClick={removeTicket}
+            className="btn-danger w-full"
+          >
+            Supprimer cette réclamation
+          </button>
+        )}
         <Link to="/dashboard" className="btn-outline w-full">
           Retour au tableau de bord
         </Link>

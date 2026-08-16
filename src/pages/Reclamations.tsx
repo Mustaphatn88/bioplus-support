@@ -83,6 +83,17 @@ export default function Reclamations() {
     }
   }
 
+  async function removeTicket(t: TicketWithAutomate) {
+    if (!window.confirm(`Supprimer définitivement cette réclamation (${t.automates?.nom ?? 'machine inconnue'}) ?`)) return;
+    if (!window.confirm('Confirmer la suppression IRREVERSIBLE ?')) return;
+    setBusyId(t.id);
+    setError(null);
+    const { error: err } = await supabase.from('tickets').delete().eq('id', t.id);
+    setBusyId(null);
+    if (err) setError(err.message);
+    else refresh();
+  }
+
   const [search, setSearch] = useState('');
   const [statutFilter, setStatutFilter] = useState('');
   const [prioriteFilter, setPrioriteFilter] = useState('');
@@ -127,20 +138,29 @@ export default function Reclamations() {
             <span className={`badge ${STATUT_STYLES[t.statut]}`}>{STATUT_LABELS[t.statut]}</span>
           </div>
         </div>
-        <div className="mt-3 space-y-2">
+<div className="mt-3 flex gap-2">
           <select
             value={t.technicien_id ?? ''}
             disabled={busyId === t.id}
             onChange={(e) => assign(t, e.target.value)}
-            className="input w-full text-sm"
+            className="input flex-1 text-sm"
           >
-            <option value="">— À dispatcher —</option>
+            <option value="">- � dispatcher -</option>
             {techniciens.map((tech) => (
               <option key={tech.id} value={tech.id}>
                 {tech.full_name ?? tech.email}
               </option>
             ))}
           </select>
+          <button
+            type="button"
+            onClick={() => removeTicket(t)}
+            disabled={busyId === t.id}
+            className="shrink-0 rounded-lg border border-red-200 px-2 py-1 text-xs font-semibold text-red-600 transition hover:bg-red-50"
+          >
+            Supprimer
+          </button>
+        </div>
           {t.technicien && (
             <p className="text-xs text-slate-500">
               Assigné à : <strong>{t.technicien.full_name ?? 'Technicien BioPlus'}</strong>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { supabase, type Automate, type Laboratoire, type TicketWithAutomate } from '../lib/supabaseClient';
 import { edge } from '../lib/edge';
 import { avgResolution, fmtDuration, type ClientUser } from '../lib/analytics';
@@ -58,6 +58,7 @@ function monthLabel(d: Date): string {
 
 export default function ClientDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [labo, setLabo] = useState<Laboratoire | null>(null);
   const [automates, setAutomates] = useState<Automate[]>([]);
   const [tickets, setTickets] = useState<TicketWithAutomate[]>([]);
@@ -65,6 +66,7 @@ export default function ClientDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const fileRef = useRef<HTMLInputElement | null>(null);
 
   async function refresh() {
@@ -176,6 +178,24 @@ export default function ClientDetail() {
       setUploadingId(null);
       if (fileRef.current) fileRef.current.value = '';
     }
+  }
+
+  async function removeClient() {
+    if (!labo) return;
+    if (!window.confirm(`Supprimer définitivement le CLIENT ${labo.nom} ET son laboratoire (machines, réclamations, historique) ?`)) return;
+    if (!window.confirm('Cette action est IRREVERSIBLE. Confirmer ?')) return;
+    setDeleting(true);
+    setError(null);
+    const user_id = comptes[0]?.id;
+    if (!user_id) {
+      setError('Aucun compte rattaché à ce client — suppression impossible depuis ici (voir Comptes utilisateurs).');
+      setDeleting(false);
+      return;
+    }
+    const { error: delUser } = await edge('update-user', { user_id, action: 'delete', delete_laboratoire: true });
+    setDeleting(false);
+    if (delUser) setError(delUser.message);
+    else navigate('/clients', { replace: true });
   }
 
   if (loading && !labo) return <Spinner label="Chargement de la fiche client..." />;
@@ -446,6 +466,15 @@ export default function ClientDetail() {
       <Link to="/clients" className="btn-outline w-full">
         Portefeuille clients
       </Link>
+
+      <button
+        type="button"
+        onClick={removeClient}
+        disabled={deleting}
+        className="btn-danger mt-3 w-full"
+      >
+        {deleting ? 'Suppression...' : 'Supprimer ce client + laboratoire'}
+      </button>
     </div>
   );
 }
