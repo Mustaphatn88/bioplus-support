@@ -394,7 +394,7 @@ export default function Dashboard() {
 
       {profile && user && (
         <p className="mt-6 text-center text-xs text-slate-400">
-          Connecté en tant que {user.email}
+          Connecté en tant que {user.email} · {window.location.hostname}
         </p>
       )}
 

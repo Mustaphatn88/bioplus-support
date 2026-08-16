@@ -37,7 +37,15 @@ export async function edge<T = unknown>(
       await supabase.auth.signOut();
       window.location.assign('/login?expired=1');
     }
-    return { data: null, error: { message: serverMsg ?? error.message } };
+    let detail = '';
+    if (ctx && typeof ctx === 'object' && !('error' in ctx)) {
+      try {
+        detail = ` — ${JSON.stringify(ctx).slice(0, 140)}`;
+      } catch {
+        detail = '';
+      }
+    }
+    return { data: null, error: { message: (serverMsg ?? error.message) + detail } };
   }
   return { data, error: null };
 }
